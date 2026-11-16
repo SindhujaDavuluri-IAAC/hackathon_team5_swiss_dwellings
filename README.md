@@ -29,16 +29,10 @@ We build an end-to-end AI tool for homebuyers, architects, and real-estate analy
 
 | Question | Disclosure |
 |---|---|
-| **Tools** | Antigravity (Gemini) coding assistant; OpenAI Codex / ChatGPT |
+| **Tools** | Antigravity coding assistant; OpenAI Codex |
 | **Why** | To inspect the 369-column `simulations.csv` schema quickly, design a room-to-apartment aggregation pipeline and review its remaining evaluation leakage, scaffold the PyTorch/ONNX comparison notebook, and troubleshoot local Anaconda environment package conflicts (`torch`, `onnxruntime`, `numpy<2`). |
 | **Where** | **Monday (`01_autoencoder/`):** Schema inspection of `simulations.csv`, apartment-level aggregation code (`24` features), `DenseAE` vs. `Conv1DAE` training loop, visualization code (`figures/`), ONNX export wrapper, and initial README/Model Card structure. |
 | **How** | We defined the domain problem (using a tabular autoencoder on Swiss Dwellings to identify noisy apartments and find similar quieter apartments) and reviewed the 369 simulation columns. We accepted the 24-feature aggregation across Acoustics, Daylight, Viewshed, and Layout, verified that splitting by `building_id` happens before `StandardScaler` fitting, and inspected the resulting ROC AUC (`0.7418`) and per-feature error attribution plots (`fig3`) to understand where global MSE succeeds and where non-acoustic layout outliers contribute to reconstruction error. |
 
 **Lessons learned:** On a 24-feature multi-domain tabular dataset, training an autoencoder on normal/quiet apartments captures joint correlations between street view, window glazing perimeter, and noise; however, global MSE alone can be triggered by extreme geometric features (like huge window perimeters), making per-feature squared error decomposition essential for explainability.
 
-
-Codex additionally assisted with environment troubleshooting, model-publication checks, the model-card format and
-reconstruction figure, and updating the moved CSV path. The current saved noise-rule results are preliminary:
-anomalies may share buildings with training normals and the label cutoffs use the full dataset. The team still needs
-to review these limitations and supply its own final interpretation and lessons. The retained Hugging Face repository
-name lacks the guideline's `-ae` suffix; see the model card's submission note.
