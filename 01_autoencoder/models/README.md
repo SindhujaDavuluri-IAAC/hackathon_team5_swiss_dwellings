@@ -1,5 +1,5 @@
 ---
-license: mit
+license: CC by 4.0
 tags:
   - autoencoder
   - anomaly-detection
