@@ -8,7 +8,7 @@ light, views and layout characteristics.
 ## Dataset
 
 - **Source:** [Swiss Dwellings v3.0.0, Zenodo](https://zenodo.org/records/7788422), Matthias Standfest et al. / Archilyse AG. DOI: `10.5281/zenodo.7788422`.
-- **Licence:** CC BY 4.0 for the data and derived examples; MIT for project code.
+- **Licence:** CC BY 4.0
 - **Size:** approximately 932 MB ZIP; the saved run loaded 367,678 room/area records and retained 44,195 apartments.
 - **Input:** 24 apartment-level features: acoustics (8), sun/daylight (6), views (5), and layout/centrality (5).
 - **Local file:** `01_autoencoder/data/simulations.csv`. Training reads the local CSV; it does not stream from Zenodo.
