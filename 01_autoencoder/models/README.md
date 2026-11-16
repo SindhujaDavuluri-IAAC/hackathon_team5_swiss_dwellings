@@ -1,12 +1,12 @@
 ---
-license: CC by 4.0
+license: cc-by-4.0
 tags:
-  - autoencoder
-  - anomaly-detection
-  - tabular
-  - onnx
-  - built-environment
-  - swiss-dwellings
+- autoencoder
+- anomaly-detection
+- tabular
+- onnx
+- built-environment
+- swiss-dwellings
 ---
 
 # Swiss Dwellings: autoencoder anomaly detector and Quiet Twin Finder
@@ -14,14 +14,12 @@ tags:
 Team 5 project for **AI Methods I, IAAC MaAI 2026/27**.
 The model scores apartment-level environmental/layout features and produces an eight-number apartment fingerprint.
 Homebuyers and real-estate analysts can inspect unusual profiles and explore potentially quieter alternatives.
-This is the **Monday trained-model release**. A model-server page, API and Render deployment are Tuesday deliverables;
-no live server is claimed here.
 
 **Team:** Breno Sader, Diego Alpizar, Sindhuja Davuluri, Soumyajyoti Datta.
 
-**Code:** [https://github.com/iaac-maai/hackathon-team5-swiss-dwellings](https://github.com/iaac-maai/hackathon-team5-swiss-dwellings)
-**Model:** [Hugging Face repository](https://huggingface.co/iaac-maai/hackathon-team5-swiss-dwellings)
-**Notebook:** [01_autoencoder/notebook/autoencoder.ipynb](https://github.com/iaac-maai/hackathon-team5-swiss-dwellings/blob/main/01_autoencoder/notebook/autoencoder.ipynb)
+**Code:** [https://github.com/iaac-maai/hackathon-team5-swiss-dwellings](https://github.com/iaac-maai/hackathon_team5_swiss_dwellings)
+**Model:** [Hugging Face repository](https://huggingface.co/iaac-maai/hackathon_team5_swiss_dwellings)
+**Notebook:** [01_autoencoder/notebook/autoencoder.ipynb](https://github.com/iaac-maai/hackathon_team5_swiss_dwellings/blob/main/01_autoencoder/notebook/autoencoder.ipynb)
 
 ## The autoencoder
 
@@ -49,8 +47,6 @@ An error contribution is not a causal explanation or a probability of a defect.
 
 **Swiss Dwellings v3.0.0**, Matthias Standfest et al. / Archilyse AG.
 [Source: Zenodo 7788422](https://zenodo.org/records/7788422), DOI **10.5281/zenodo.7788422**.
-The data and derived apartment examples/catalogue retain **CC BY 4.0** attribution; the project code is **MIT** licensed.
-The MIT metadata above does not replace the data licence.
 
 The published dataset describes 45,176 apartments and approximately 370,000 rooms, distributed in an approximately
 932 MB ZIP. The saved run read **367,678 room/area records** from `simulations.csv` (reported as 1,521 MB) and retained
