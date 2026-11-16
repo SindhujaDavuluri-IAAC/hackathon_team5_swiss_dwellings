@@ -1,4 +1,4 @@
-# hackathon_team5_swiss_dwellings — Swiss Dwellings Acoustic Anomaly Detector & Quiet Twin Finder
+Swiss Dwellings Acoustic Anomaly Detector & Quiet Twin Finder
 
 **Team 5:** Breno Sader, Diego Alpizar, Sindhuja Davuluri, Soumyajyoti Datta
 
