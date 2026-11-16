@@ -1,0 +1,32 @@
+{
+  "label": "Noisy Anomaly Apartment #1 (Street Traffic)",
+  "site_id": 2247,
+  "building_id": 3157,
+  "apartment_id": "667090a71b7ab55f6f4d40de3642d548",
+  "features": {
+    "noise_traffic_day_mean": 33.7639,
+    "noise_traffic_day_max": 66.0512,
+    "noise_traffic_night_mean": 28.7518,
+    "noise_traffic_night_max": 59.541,
+    "window_traffic_day_max": 72.4132,
+    "window_traffic_night_max": 65.9354,
+    "noise_train_day_max": 29.9988,
+    "window_train_day_max": 38.9776,
+    "sun_equinox_noon_mean": 2.8441,
+    "sun_equinox_afternoon_mean": 2.1431,
+    "sun_summer_morning_mean": 3.1097,
+    "sun_summer_noon_mean": 3.3395,
+    "sun_summer_evening_mean": 1.8693,
+    "sun_winter_noon_mean": 1.8144,
+    "view_sky_mean": 0.0382,
+    "view_greenery_mean": 0.0177,
+    "view_buildings_mean": 0.0131,
+    "view_isovist_mean": 2758577022.7803,
+    "view_streets_mean": 0.0091,
+    "apt_total_area": 167.254,
+    "apt_room_count": 18.0,
+    "apt_floor_number": 6.0,
+    "apt_window_perimeter": 9.3931,
+    "apt_closeness_centrality": 0.0276
+  }
+}

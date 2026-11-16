@@ -426,3 +426,40 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+
+# ==========================================
+# IAAC Hackathon Rules (Data, Models, Secrets)
+# ==========================================
+# virtual environments
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# data: downloaded/extracted locally, never committed
+data/*
+!data/.gitkeep
+01_autoencoder/data/*
+!01_autoencoder/data/.gitkeep
+
+# model files: on Hugging Face, not on GitHub
+*.onnx
+*.pt
+*.joblib
+*.csv
+*.zip
+
+# Cloudflare and Node
+node_modules/
+.wrangler/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# secrets: NEVER commit these
+.env
+.dev.vars
+kaggle.json
