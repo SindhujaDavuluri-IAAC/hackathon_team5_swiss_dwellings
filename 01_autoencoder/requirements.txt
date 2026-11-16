@@ -1,0 +1,8 @@
+numpy==1.26.4
+pandas==2.2.2
+matplotlib==3.8.4
+scikit-learn==1.4.2
+torch==2.15.0
+onnx==1.23.2
+onnxscript==0.7.2
+onnxruntime==1.32.0
