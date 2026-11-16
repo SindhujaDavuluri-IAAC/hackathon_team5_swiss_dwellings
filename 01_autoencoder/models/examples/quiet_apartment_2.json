@@ -1,0 +1,32 @@
+{
+  "label": "Normal / Quiet Apartment #2",
+  "site_id": 19,
+  "building_id": 938,
+  "apartment_id": "1c672b9a1eb32748dec39c12c87d4840",
+  "features": {
+    "noise_traffic_day_mean": 4.6952,
+    "noise_traffic_day_max": 23.4761,
+    "noise_traffic_night_mean": 1.5055,
+    "noise_traffic_night_max": 7.5276,
+    "window_traffic_day_max": 35.1211,
+    "window_traffic_night_max": 19.1211,
+    "noise_train_day_max": 0.0,
+    "window_train_day_max": 0.0,
+    "sun_equinox_noon_mean": 2.2986,
+    "sun_equinox_afternoon_mean": 1.3663,
+    "sun_summer_morning_mean": 1.0755,
+    "sun_summer_noon_mean": 1.9468,
+    "sun_summer_evening_mean": 0.7841,
+    "sun_winter_noon_mean": 1.3352,
+    "view_sky_mean": 0.0168,
+    "view_greenery_mean": 0.0033,
+    "view_buildings_mean": 0.0373,
+    "view_isovist_mean": 319.2251,
+    "view_streets_mean": 0.0,
+    "apt_total_area": 48.9737,
+    "apt_room_count": 5.0,
+    "apt_floor_number": 3.0,
+    "apt_window_perimeter": 3.48,
+    "apt_closeness_centrality": 0.0484
+  }
+}

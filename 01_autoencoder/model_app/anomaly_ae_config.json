@@ -91,7 +91,7 @@
     0.010765
   ],
   "preprocessing": "StandardScaler (x - scaler_mean) / scaler_scale fitted on normal train apartments",
-  "threshold": 0.189354,
+  "threshold": 0.179895,
   "threshold_rule": "95th percentile of reconstruction MSE on normal validation apartments",
-  "test_roc_auc": 0.7585
+  "test_roc_auc": 0.7418
 }

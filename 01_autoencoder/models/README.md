@@ -1,5 +1,5 @@
 ---
-license: mit
+license: CC by 4.0
 tags:
   - autoencoder
   - anomaly-detection
@@ -9,100 +9,204 @@ tags:
   - swiss-dwellings
 ---
 
-# Swiss Dwellings Tabular Autoencoder (`hackathon-team5-swiss-dwellings-ae`)
+# Swiss Dwellings: autoencoder anomaly detector and Quiet Twin Finder
 
-A tabular **Multi-Layer Perceptron Autoencoder (`DenseAE`, `latent_dim=8`)** trained on the **Swiss Dwellings v3.0.0** dataset to:
-1. **Detect Acoustic & Environmental Anomalies:** Flag residential apartments whose acoustic exposure (traffic/train noise) and spatial context deviate strongly from normal quiet/moderate Swiss apartments (`threshold = 0.189354`, 95th percentile of normal validation MSE).
-2. **Retrieve "Quiet Twins" via Latent Space Similarity Search:** Encode any apartment into an 8-dimensional **Apartment Fingerprint** and find genuinely quiet apartments with matching floor area, room count, solar radiation, and sky view.
+Team 5 project for **AI Methods I, IAAC MaAI 2026/27**.
+The model scores apartment-level environmental/layout features and produces an eight-number apartment fingerprint.
+Homebuyers and real-estate analysts can inspect unusual profiles and explore potentially quieter alternatives.
+This is the **Monday trained-model release**. A model-server page, API and Render deployment are Tuesday deliverables;
+no live server is claimed here.
 
-- **GitHub Repository:** [iaac-maai/hackathon-team5-swiss-dwellings](https://github.com/iaac-maai/hackathon-team5-swiss-dwellings)
-- **Team 5:** Breno Sader, Diego Alpizar, Sindhuja Davuluri, Soumyajyoti Datta
+**Team:** Breno Sader, Diego Alpizar, Sindhuja Davuluri, Soumyajyoti Datta.
 
----
+**Code:** [https://github.com/iaac-maai/hackathon-team5-swiss-dwellings](https://github.com/iaac-maai/hackathon-team5-swiss-dwellings)
+**Model:** [Hugging Face repository](https://huggingface.co/iaac-maai/hackathon-team5-swiss-dwellings)
+**Notebook:** [01_autoencoder/notebook/autoencoder.ipynb](https://github.com/iaac-maai/hackathon-team5-swiss-dwellings/blob/main/01_autoencoder/notebook/autoencoder.ipynb)
+
+## The autoencoder
+
+| | |
+|---|---|
+| **Type** | Dense tabular autoencoder. Encoder: 24 -> 64 -> 32 -> 8; decoder: 8 -> 32 -> 64 -> 24; ReLU between hidden layers, linear decoder output. |
+| **Trained on** | Swiss Dwellings v3.0.0: 26,248 rule-normal residential apartments; 24 features across acoustics, sun, views and layout. |
+| **Use** | Reconstruction-error anomaly detection; experimental similarity search using the 8-dimensional latent vector. |
+| **Score** | Mean squared error between the standardized input and reconstruction, averaged across all 24 features. |
+| **Threshold** | **0.179895**, the 95th percentile of normal validation error, stored in `anomaly_ae_config.json`. |
+| **Test result** | Noise-rule ROC AUC **0.7418**, precision **0.8138**, recall **0.2144**, on a balanced test set. These are preliminary proxy-label metrics; see limitations. |
+| **Format** | `anomaly_ae.onnx`, 48,788 bytes, run with CPU ONNX Runtime; PyTorch is unnecessary for inference. |
+| **Notebook** | Linked above; saved outputs record the training comparison and five-sample PyTorch/ONNX score agreement. |
+
+**Input:** 24 finite **apartment-level aggregates**, ordered exactly as `config["feature_names"]`.
+Apply `(raw - scaler_mean) / scaler_scale` using the exported configuration. The scaler was fitted on normal
+training apartments only. Raw room CSV rows cannot be passed directly to this model. Reject missing or nonfinite values;
+do not fit a replacement scaler. Stored scaler vectors and example features were rounded by the exporter.
+
+**Output:** ONNX returns `reconstruction` with shape `(batch, 24)` and `latent` with shape `(batch, 8)`.
+Application code computes `score`, `threshold`, `is_anomaly`, `score / threshold` and per-feature squared errors.
+An error contribution is not a causal explanation or a probability of a defect.
 
 ## Dataset
 
-- **Name:** [Swiss Dwellings: A large dataset of apartment models including aggregated geolocation-based simulation results](https://zenodo.org/records/7788422) (v3.0.0, Zenodo DOI `10.5281/zenodo.7788422`)
-- **Author / Curator:** Matthias Standfest et al. (Archilyse AG)
-- **Data Licence:** **CC BY 4.0** (Creative Commons Attribution 4.0 International)
-- **Size & Aggregation:** ~370,000 residential room rows in `simulations.csv` (`1.52 GB`) aggregated by `(site_id, building_id, apartment_id)` into **~43,700 multi-room apartments** across **24 apartment-level features**:
-  - **Acoustics / Noise (8 features):** `noise_traffic_day_mean`, `noise_traffic_day_max`, `noise_traffic_night_mean`, `noise_traffic_night_max`, `window_traffic_day_max`, `window_traffic_night_max`, `noise_train_day_max`, `window_train_day_max`
-  - **Daylight & Direct Sun (6 features):** `sun_equinox_noon_mean`, `sun_equinox_afternoon_mean`, `sun_summer_morning_mean`, `sun_summer_noon_mean`, `sun_summer_evening_mean`, `sun_winter_noon_mean`
-  - **Viewshed & Context (5 features):** `view_sky_mean`, `view_greenery_mean`, `view_buildings_mean`, `view_isovist_mean`, `view_streets_mean`
-  - **Layout, Geometry & Centrality (5 features):** `apt_total_area`, `apt_room_count`, `apt_floor_number`, `apt_window_perimeter`, `apt_closeness_centrality`
+**Swiss Dwellings v3.0.0**, Matthias Standfest et al. / Archilyse AG.
+[Source: Zenodo 7788422](https://zenodo.org/records/7788422), DOI **10.5281/zenodo.7788422**.
+The data and derived apartment examples/catalogue retain **CC BY 4.0** attribution; the project code is **MIT** licensed.
+The MIT metadata above does not replace the data licence.
 
----
+The published dataset describes 45,176 apartments and approximately 370,000 rooms, distributed in an approximately
+932 MB ZIP. The saved run read **367,678 room/area records** from `simulations.csv` (reported as 1,521 MB) and retained
+**44,195 apartments** with at least two area records and complete aggregated features.
+Grouping keys are `(site_id, building_id, apartment_id)` after residential filtering.
 
-## Architecture, Preprocessing & Training Setup
+| Feature group | Apartment-level features |
+|---|---|
+| Acoustics: 8 | Traffic day/night means and maxima, window traffic day/night maxima, daytime train and window-train maxima |
+| Sun: 6 | Mean illuminance at equinox noon/afternoon, summer morning/noon/evening, winter noon |
+| Views: 5 | Sky, greenery, buildings, isovist and combined street views |
+| Layout/centrality: 5 | Summed area, area-record count, mean floor number, summed window perimeter, mean closeness centrality |
 
-- **Split Strategy:** Grouped by `building_id` (`GroupShuffleSplit`, `RANDOM_STATE=42`) **before scaling** so apartments from the same building never leak between train, validation, and test sets.
-- **Anomaly Training Rule:** Trained **exclusively on normal/quiet-to-moderate apartments (`y = 0`)**. Apartments in the top tail of traffic or train noise (`y = 1`) are held out for test evaluation (`X_eval`: `5,648` normal + `5,648` noisy anomaly apartments).
-- **Preprocessing:** `StandardScaler` (`(x - scaler_mean) / scaler_scale`) fitted on `X_train` only. Exact `scaler_mean` and `scaler_scale` vectors are stored in `anomaly_ae_config.json`.
-- **Architecture (`DenseAE`):**
-  - **Encoder:** `Linear(24 -> 64) -> ReLU -> Linear(64 -> 32) -> ReLU -> Linear(32 -> 8)`
-  - **Decoder:** `Linear(8 -> 32) -> ReLU -> Linear(32 -> 64) -> ReLU -> Linear(64 -> 24)` *(linear output, no `Sigmoid`, since standardized inputs span $(-\infty, +\infty)$)*
-  - **ONNX Outputs:** Both `reconstruction` `(batch, 24)` and `latent` `(batch, 8)`
+Noise means are arithmetic summaries of dBA, not energy-equivalent acoustic averages. `apt_room_count` counts area records
+(including ancillary spaces); summed `layout_area` is not independently verified net living area.
+Training requires the original simulations; inference needs only this model, its configuration and user feature values.
+The current training notebook reads a local CSV rather than streaming directly from Zenodo.
 
-### Comparison of Setups (Same Split & Seed = 42, 35 Epochs)
+## Training setup and comparison
 
-| Setup | Architecture | Latent Dim | Parameters | Val MSE (Normal) | Test MSE (Normal) | Threshold (95th Val) | Test ROC AUC |
-|---|---|---:|---:|---:|---:|---:|---:|
-| 1 | `DenseAE (latent=4)` | 4 | 7,540 | ~0.203 | ~0.203 | ~0.460 | ~0.71 |
-| **2 (Selected)** | **`DenseAE (latent=8)`** | **8** | **7,800** | **0.074** | **0.074** | **0.1894** | **0.7585** |
-| 3 | `Conv1DAE (latent=8)` | 8 | 8,929 | ~0.072 | ~0.072 | ~0.186 | ~0.75 |
+All setups used seed 42, 35 epochs, batch size 256, Adam at 0.001 and MSE loss on the same normal training/validation split.
+Normal validation contains **5,666 apartments**. Evaluation contains **5,648 normals plus 5,648 noisy-rule apartments**.
+Each model uses its own normal-validation 95th-percentile reconstruction threshold.
 
-**Conclusion:** Increasing the bottleneck from `latent=4` to `latent=8` reduces normal validation/test reconstruction MSE by more than 60% (`0.203 -> 0.074`), because the 24 features span 4 distinct physical domains (acoustics, solar radiation, viewshed, and geometry). `DenseAE (latent=8)` matches `Conv1DAE (latent=8)` with fewer parameters and faster inference, making it ideal for CPU deployment on Render.
+The labels are **noise-rule proxies**, not independently annotated ground truth: indoor daytime traffic above the
+full-dataset 90th percentile, window daytime traffic above the 92nd, or indoor daytime train noise above the 95th.
+Their union flags **6,633 apartments (15%)**. These percentile rules are not Swiss regulatory limits.
 
----
+Values below come from the latest saved notebook outputs; preparing this card does not retrain the model.
 
-## Results & Figures
+| Setup | Latent | Params | Train time (s) | Val MSE (normal) | Test MSE (normal) | Threshold | Test ROC AUC | Precision | Recall |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| DenseAE-4 | 4 | 7,644 | 9.28 | 0.2174 | 0.2041 | 0.6154 | 0.7310 | 0.7797 | 0.1209 |
+| **DenseAE-8 (selected)** | **8** | **7,904** | **7.97** | **0.0720** | **0.0716** | **0.1799** | **0.7418** | **0.8138** | **0.2144** |
+| Conv1DAE-8 | 8 | 7,033 | 14.57 | 0.0791 | 0.0819 | 0.1899 | 0.6967 | 0.7898 | 0.2056 |
 
-### 1. Training vs. Validation Loss Across Setups
-![Training Curves](fig1_training_curves.png)
+DenseAE-8 has the lowest normal validation MSE and the highest reported noise-rule ROC AUC in this run.
+Its validation MSE falls from 0.2174 to 0.0720 compared with DenseAE-4, and its recorded training time is shorter than Conv1DAE-8.
+However, recall is only 0.2144 at the chosen threshold, so it misses many rule-noisy apartments despite precision of 0.8138.
+These results support a small experimental model, with leakage and independent validation still unresolved.
 
-### 2. Noise Anomaly Detection Histogram & ROC Curve
-![Anomaly Histogram and ROC Curve](fig2_anomaly_histogram_roc.png)
+## Results and figures
 
-### 3. Per-Feature Reconstruction Error Breakdown & "Quiet Twin" Search
-![Feature Breakdown and Quiet Twins](fig3_feature_breakdown_and_quiet_twins.png)
+### Training and normal-validation reconstruction loss
 
----
+![Training and validation curves](fig1_training_curves.png)
 
-## Limitations & Where the Model Fails
+Compare validation with training loss to assess convergence and the gap between them. The numerical comparison above
+reports held-out normal error separately from noisy-rule detection performance.
 
-1. **Moderate Noise Overlap (`ROC AUC = 0.7585`):** Because the autoencoder reconstructs all 24 features simultaneously (and only 8 of the 24 features are acoustic), an apartment that has **borderline high traffic noise** (`~52 dBA`) alongside very typical layout, sunlight, and viewshed values can still achieve an overall 24-feature average MSE below `0.1894` and slip through as a false negative.
-2. **Extreme Non-Acoustic Outliers:** Conversely, an apartment with an unusually huge window perimeter (`apt_window_perimeter`), extreme urban street visibility (`view_streets_mean`), or penthouse floor area can produce a high overall reconstruction MSE even if its indoor noise is moderate. Inspecting the **per-feature squared error** $(x_i - \hat{x}_i)^2$ separates acoustic anomalies from geometric/layout outliers.
-3. **Room-Role Averaging:** Aggregating by apartment `.mean()` and `.max()` does not distinguish whether the loudest room (`noise_traffic_day_max`) is a bedroom or a kitchen/balcony.
+### Observed features and model reconstructions
 
----
+![Observed versus reconstructed quiet-rule and noisy-rule examples](fig4_reconstructions.png)
 
-## How to Use (ONNX Runtime)
+The figure runs the exported ONNX model on two saved apartment examples using the stored scaler configuration.
+It compares all 24 observed and reconstructed standardized values. These are descriptive examples, not a new independent
+test set. The first eight positions are acoustic features; mismatches elsewhere can also drive an anomaly score.
+
+### Noise-rule anomaly scores and ROC
+
+![Score distribution and ROC curve](fig2_anomaly_histogram_roc.png)
+
+AUC describes ranking across thresholds; the selected decision threshold still has low recall, as shown in the table.
+
+### Error contributions and similarity demonstration
+
+![Per-feature errors and candidate apartment comparison](fig3_feature_breakdown_and_quiet_twins.png)
+
+The prototype replaces eight standardized noise inputs with zero, the normal training **mean**, then encodes the target
+and searches a local 300-apartment catalogue. It does not enforce equal area, room count, daylight or a specified noise
+reduction. Treat its outputs as candidates for review, not proven quiet twins. The optional catalogue is not published
+in this model-card compliance update; it remains in the local Day 1 export.
+
+## Run it locally
+
+Download the model, configuration and an example using the short script below. Install the pinned inference dependencies:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+The published `requirements.txt` is for **inference**, with NumPy, ONNX Runtime and huggingface_hub.
+Training dependencies remain in `01_autoencoder/requirements.txt` in the code repository.
+The ONNX graph is small enough for CPU use. Original CSVs, the full ZIP, scikit-learn and PyTorch are unnecessary
+for scoring a new apartment. A valid 24-feature input is still required.
+
+## Call it from a program
+
+This is direct model inference, not a call to an already deployed HTTP API.
 
 ```python
 import json
 import numpy as np
 import onnxruntime as ort
+from huggingface_hub import hf_hub_download
 
-# 1. Load preprocessing config and ONNX model
-with open("anomaly_ae_config.json", "r") as f:
+repo_id = "iaac-maai/hackathon-team5-swiss-dwellings"
+model_path = hf_hub_download(repo_id, "anomaly_ae.onnx")
+config_path = hf_hub_download(repo_id, "anomaly_ae_config.json")
+example_path = hf_hub_download(repo_id, "examples/quiet_apartment_1.json")
+with open(config_path, encoding="utf-8") as f:
     config = json.load(f)
+with open(example_path, encoding="utf-8") as f:
+    apartment = json.load(f)
 
-session = ort.InferenceSession("anomaly_ae.onnx")
-
-mean = np.array(config["scaler_mean"], dtype=np.float32)
-scale = np.array(config["scaler_scale"], dtype=np.float32)
+raw = np.array([[apartment["features"][name] for name in config["feature_names"]]], dtype=np.float64)
+mean = np.array(config["scaler_mean"], dtype=np.float64)
+scale = np.array(config["scaler_scale"], dtype=np.float64)
+if not np.isfinite(raw).all() or not np.isfinite(mean).all() or not np.isfinite(scale).all() or (scale <= 0).any():
+    raise ValueError("All features and scaler values must be finite, and scales positive.")
+x = ((raw - mean) / scale).astype(np.float32)
+session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+reconstruction, latent = session.run(None, {"features": x})
+feature_error = (x - reconstruction)**2
+score = feature_error.mean(axis=1)
 threshold = config["threshold"]
-
-# 2. Example raw 24-feature apartment vector (in config["feature_names"] order)
-raw_features = mean.copy()  # replace with real apartment feature values
-x_scaled = ((raw_features - mean) / scale)[None, :]  # shape (1, 24)
-
-# 3. Run inference: get reconstruction (1, 24) and 8D latent fingerprint (1, 8)
-reconstruction, latent = session.run(None, {"features": x_scaled})
-per_feature_error = (reconstruction[0] - x_scaled[0]) ** 2
-mse_score = float(per_feature_error.mean())
-
-print(f"Anomaly MSE Score : {mse_score:.4f} (Threshold: {threshold:.4f})")
-print(f"Is Anomaly?       : {mse_score > threshold}")
-print(f"8D Fingerprint    : { np.round(latent[0], 3) }")
+print({"score": score.tolist(), "threshold": threshold,
+       "is_anomaly": (score > threshold).tolist(),
+       "score_multiple": (score / threshold).tolist(), "latent": latent.tolist()})
 ```
+
+## Files
+
+| File | Contents |
+|---|---|
+| `README.md` | This model card |
+| `anomaly_ae.onnx` | Architecture and weights; reconstruction and latent outputs |
+| `anomaly_ae_config.json` | Ordered input features, stored scaler arrays, threshold, latent size and recorded AUC |
+| `examples/` | Four apartment-level JSON inputs, retaining CC BY 4.0 attribution |
+| `requirements.txt` | Pinned inference dependencies |
+| `fig1_training_curves.png` | Three-model training/validation curves |
+| `fig4_reconstructions.png` | Observed/reconstructed saved-example feature profiles |
+| `fig2_anomaly_histogram_roc.png` | Noise-rule score histogram and ROC |
+| `fig3_feature_breakdown_and_quiet_twins.png` | Error contributions and experimental candidate comparison |
+
+Local-only companion exports include PyTorch `anomaly_ae.pt` and the optional `quiet_twins_catalog.json`.
+No full dataset, credentials or future-day server implementation is part of this publication.
+
+## Limitations
+
+1. **Evaluation leakage remains unresolved.** Normal apartments are split by building, but anomalies are sampled
+   separately from all noisy apartments, so evaluation anomalies can share buildings with training/validation normals.
+   Label cutoffs use the full dataset. The reported scores are preliminary, not a fully building-independent evaluation.
+   Split all buildings before calibrating labels in a future experiment.
+2. **Proxy labels and prevalence.** Noise is both an input and the basis of the label rule; AUC is not independent
+   real-world anomaly accuracy. Precision on a 50/50 balanced evaluation set does not establish deployment precision.
+3. **Missed noisy apartments.** Recall is 0.2144. A low score does not certify a quiet apartment, and a high score
+   can result from unusual geometry or views. The 95th-percentile rule targets roughly 5% of validation normals;
+   it does not guarantee a 5% false-positive rate on new buildings.
+4. **Aggregation and similarity.** Room roles/spatial arrangement are lost. The catalogue comes from normal test
+   apartments, so retrieval needs a separate reference catalogue and independent evaluation. There are no strict
+   daylight/layout/noise-improvement filters, nor evidence about listings, price or perceived comfort.
+5. **Export precision.** Stored scaler arrays/examples are rounded. Saved notebook outputs show five-sample
+   PyTorch/ONNX score agreement, not coverage of every possible input. Validate missing values and schema at serving time.
+
+## AI disclosure
+
+Antigravity, and OpenAI Codex assisted with code and documentation to follow the class example and submission guidelines. The root GitHub README contains the project-wide AI disclosure; the team owns its
+interpretation and final submission.
