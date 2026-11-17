@@ -65,7 +65,7 @@ arrangement; similarity has no explicit noise-improvement or layout/daylight gua
 ## Links
 
 - [Published model and model card](https://huggingface.co/iaac-maai/hackathon-team5-swiss-dwellings)
-- [Local model card source](models/README.md)
+- [Model card](model_app/README.md)
 - [Training notebook](notebook/autoencoder.ipynb)
 - [Pinned training requirements](requirements.txt)
 - [Exported preprocessing configuration](model_app/anomaly_ae_config.json)
