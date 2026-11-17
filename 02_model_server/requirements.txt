@@ -1,0 +1,7 @@
+# CPU server plus both Day 2 notebooks; PyTorch and the training CSV are unnecessary.
+# ONNX Runtime 1.20.1 is the version verified on this Windows project environment.
+gradio==6.32.0
+gradio_client==2.7.2
+onnxruntime==1.20.1
+numpy==2.5.5
+requests==2.32.5
