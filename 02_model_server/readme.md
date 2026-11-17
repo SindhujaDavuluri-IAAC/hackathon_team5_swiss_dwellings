@@ -36,6 +36,22 @@ The published release remains DenseAE-8 with 24 inputs, threshold **0.179895**, 
 
 Two deliberate deployment improvements: catalog fingerprints are recomputed with the loaded ONNX, and search returns fewer matches when filters cannot be satisfied. The notebook's fallback to all normal apartments could otherwise return candidates that fail the requested goals. The Day 1 notebook was also updated at your request to export only into `model_app/`; duplicate model copies are no longer created.
 
+## Dashboard interface
+
+The Gradio page uses a responsive apartment comparison layout with a forest-green header and clear input/result panels.
+
+1. Choose one of four saved apartment examples, labeled with area and floor.
+2. Select lower daytime traffic noise, more equinox sunlight, and/or better sky/greenery views. Choose 1-5 matches.
+3. Optionally expand **Review or edit the 24 measurements**; inputs are grouped into Acoustics, Sunlight, Views and Layout tabs and use original units.
+4. Click **Analyse profile & find twins**. The result shows the anomaly verdict, score, threshold, domain-error bars and six largest feature mismatches.
+5. Compare the twin cards with the query's measurements, or expand the comparison table. Full prediction details are available in a separate accordion.
+
+Changing an apartment, preference or measurement clears the previous results so they cannot be mistaken for the new request. If no reference apartment meets every selected goal, the page shows a no-match message without relaxing filters.
+
+The page calls `analyse_for_page`, which translates form controls into the existing `predict` JSON contract. The public `/predict` and `/health` APIs retain their names and response fields. UI changes require no model training or Hugging Face weight update.
+
+Desktop and mobile Chrome checks passed, including analysis, preference changes, result reset, and a 390-pixel-wide layout without horizontal overflow. The dashboard and public API return the same example score (**0.369311**) and three twins. These checks cover the local dashboard; the redesigned page needs a Git push and Render redeployment before appearing at the public URL.
+
 ## Input and output
 
 Input is **JSON text** with a `features` dictionary of all 24 apartment-level measurements in their original units. Use the feature names in the copyable example below or the Day 1 config. Do not send room rows, pre-scaled numbers, missing values, strings, or NaN/infinity. The model's area-record count includes kitchens, bathrooms and other areas; it is not an official habitable-room count.
@@ -73,7 +89,7 @@ python -m pip install -r 02_model_server/requirements.txt
 python 02_model_server/app.py
 ```
 
-Open http://127.0.0.1:7860. Choose an example, inspect its measurements, and press **Analyse and find twins**. Stop with Ctrl+C. While the terminal server remains running, open `call_api.ipynb` and run its cells to capture local API evidence. For the explained walkthrough, open `02_development.ipynb`; it can start and stop its own local server.
+Open http://127.0.0.1:7860. Choose a starting apartment, select improvement goals, optionally edit measurements, and press **Analyse profile & find twins**. Stop with Ctrl+C. While the terminal server remains running, open `call_api.ipynb` and run its cells to capture local API evidence. For the explained walkthrough, open `02_development.ipynb`; it can start and stop its own local server.
 
 The server reads `01_autoencoder/model_app/`: config, examples and the full catalog. Local ONNX is used when present; otherwise the server downloads only `anomaly_ae.onnx` from the existing Hugging Face repository at pinned commit `1f410d690ad7e6e6d46442e856f9232183542973` into memory. Later uploads to `main` do not silently change this service. Its SHA-256 must match the reviewed export: `884fb2b59c052b72862f0b07e9ef1b3c983c2d9e60494ae4738d35d2c24e77e3`.
 
