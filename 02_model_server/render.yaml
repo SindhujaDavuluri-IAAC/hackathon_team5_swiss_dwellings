@@ -1,0 +1,17 @@
+# Python version is set below; no separate .python-version file is required.
+# The ONNX release and checksum are pinned in app.py.
+# Use this Blueprint from the existing team repository, keeping both day folders.
+# In Render select Blueprint Path: 02_model_server/render.yaml; leave Root Directory blank.
+services:
+  - type: web
+    name: hackathon-team5-swiss-dwellings
+    runtime: python
+    plan: free
+    buildCommand: pip install -r 02_model_server/requirements.txt
+    startCommand: python 02_model_server/app.py
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: GRADIO_ANALYTICS_ENABLED
+        value: "False"

@@ -17,9 +17,17 @@ Homebuyers and real-estate analysts can inspect unusual profiles and explore pot
 
 **Team:** Breno Sader, Diego Alpizar, Sindhuja Davuluri, Soumyajyoti Datta.
 
-**Code:** [https://github.com/iaac-maai/hackathon-team5-swiss-dwellings](https://github.com/iaac-maai/hackathon_team5_swiss_dwellings)
-**Model:** [Hugging Face repository](https://huggingface.co/iaac-maai/hackathon_team5_swiss_dwellings)
-**Notebook:** [01_autoencoder/notebook/autoencoder.ipynb](https://github.com/iaac-maai/hackathon_team5_swiss_dwellings/blob/main/01_autoencoder/notebook/autoencoder.ipynb)
+**Code:** [https://github.com/iaac-maai/hackathon-team5-swiss-dwellings](https://github.com/iaac-maai/hackathon-team5-swiss-dwellings)
+**Model:** [Hugging Face repository](https://huggingface.co/iaac-maai/hackathon-team5-swiss-dwellings)
+**Notebook:** [01_autoencoder/notebook/autoencoder.ipynb](https://github.com/iaac-maai/hackathon-team5-swiss-dwellings/blob/main/01_autoencoder/notebook/autoencoder.ipynb)
+
+## Updates to model: 17 November 2026
+
+- The selected model remains **DenseAE-8** with **24 input features**, threshold **0.179895**, and recorded test ROC AUC **0.7418**.
+- Twin search now covers the full **44,195-apartment catalog**, with selectable acoustic, sunlight and view improvements, rather than only the compact 300-apartment reference.
+- The latest saved comparison updates training times and Conv1DAE metrics; the table below reflects those outputs.
+- All exports are kept in `01_autoencoder/model_app/`; the notebook no longer creates a duplicate `models/` folder.
+- Current ONNX SHA-256: `884fb2b59c052b72862f0b07e9ef1b3c983c2d9e60494ae4738d35d2c24e77e3`.
 
 ## The autoencoder
 
@@ -56,7 +64,7 @@ Grouping keys are `(site_id, building_id, apartment_id)` after residential filte
 | Feature group | Apartment-level features |
 |---|---|
 | Acoustics: 8 | Traffic day/night means and maxima, window traffic day/night maxima, daytime train and window-train maxima |
-| Sun: 6 | Mean illuminance at equinox noon/afternoon, summer morning/noon/evening, winter noon |
+| Sun: 6 | Mean sun simulation values at equinox noon/afternoon, summer morning/noon/evening, winter noon (not direct daylight-factor measurements) |
 | Views: 5 | Sky, greenery, buildings, isovist and combined street views |
 | Layout/centrality: 5 | Summed area, area-record count, mean floor number, summed window perimeter, mean closeness centrality |
 
@@ -79,12 +87,12 @@ Values below come from the latest saved notebook outputs; preparing this card do
 
 | Setup | Latent | Params | Train time (s) | Val MSE (normal) | Test MSE (normal) | Threshold | Test ROC AUC | Precision | Recall |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| DenseAE-4 | 4 | 7,644 | 9.28 | 0.2174 | 0.2041 | 0.6154 | 0.7310 | 0.7797 | 0.1209 |
-| **DenseAE-8 (selected)** | **8** | **7,904** | **7.97** | **0.0720** | **0.0716** | **0.1799** | **0.7418** | **0.8138** | **0.2144** |
-| Conv1DAE-8 | 8 | 7,033 | 14.57 | 0.0791 | 0.0819 | 0.1899 | 0.6967 | 0.7898 | 0.2056 |
+| DenseAE-4 | 4 | 7,644 | 23.22 | 0.2174 | 0.2041 | 0.6154 | 0.7310 | 0.7797 | 0.1209 |
+| **DenseAE-8 (selected)** | **8** | **7,904** | **22.65** | **0.0720** | **0.0716** | **0.1799** | **0.7418** | **0.8138** | **0.2144** |
+| Conv1DAE-8 | 8 | 7,033 | 39.92 | 0.0718 | 0.0737 | 0.1800 | 0.6906 | 0.7726 | 0.1894 |
 
-DenseAE-8 has the lowest normal validation MSE and the highest reported noise-rule ROC AUC in this run.
-Its validation MSE falls from 0.2174 to 0.0720 compared with DenseAE-4, and its recorded training time is shorter than Conv1DAE-8.
+DenseAE-8 has the highest reported noise-rule ROC AUC and slightly lower normal test MSE than Conv1DAE-8 in this run. Conv1DAE-8 has the slightly lower normal validation MSE (0.0718 versus 0.0720).
+Its validation MSE falls from 0.2174 to 0.0720 compared with DenseAE-4, and its recorded training time is shorter than Conv1DAE-8. Training times depend on the machine; these are the latest saved run, not a speed guarantee.
 However, recall is only 0.2144 at the chosen threshold, so it misses many rule-noisy apartments despite precision of 0.8138.
 These results support a small experimental model, with leakage and independent validation still unresolved.
 
@@ -101,9 +109,7 @@ reports held-out normal error separately from noisy-rule detection performance.
 
 ![Observed versus reconstructed quiet-rule and noisy-rule examples](fig4_reconstructions.png)
 
-The figure runs the exported ONNX model on two saved apartment examples using the stored scaler configuration.
-It compares all 24 observed and reconstructed standardized values. These are descriptive examples, not a new independent
-test set. The first eight positions are acoustic features; mismatches elsewhere can also drive an anomaly score.
+This retained figure comes from an earlier export and was not regenerated with the latest run. It illustrates observed and reconstructed standardized values; use the current exported model and saved examples for current scores. The first eight positions are acoustic features; mismatches elsewhere can also drive an anomaly score.
 
 ### Noise-rule anomaly scores and ROC
 
@@ -115,10 +121,24 @@ AUC describes ranking across thresholds; the selected decision threshold still h
 
 ![Per-feature errors and candidate apartment comparison](fig3_feature_breakdown_and_quiet_twins.png)
 
-The prototype replaces eight standardized noise inputs with zero, the normal training **mean**, then encodes the target
-and searches a local 300-apartment catalogue. It does not enforce equal area, room count, daylight or a specified noise
-reduction. Treat its outputs as candidates for review, not proven quiet twins. The optional catalogue is not published
-in this model-card compliance update; it remains in the local Day 1 export.
+The latest notebook encodes all **44,195 apartments** into eight-dimensional fingerprints and ranks candidates by Euclidean distance to an edited target fingerprint. Search spans the full catalog, but candidates must initially have normal noise-rule labels.
+
+| Goal | Edited target in standardized units | Candidate filter in original measurements |
+|---|---|---|
+| Comparable layout | Keep the query's layout inputs | Area within +/-25%; area-record count within +/-2 |
+| Improve acoustics | Set the eight acoustic inputs to -0.5 | Indoor and window daytime traffic maxima each more than 10 dBA lower than the query |
+| Improve sunlight | Raise each of the six sun inputs to at least +0.8 | Higher equinox-noon sun value |
+| Improve view | Raise sky, greenery and isovist inputs to at least +0.8 | Higher sky view and equal or higher greenery view |
+
+The notebook exposes `improve_acoustics`, `improve_sunlight`, `improve_view` and `top_k` (default 3). These are edits to interpretable input features before encoding; latent dimensions are not independently identified noise or daylight controls.
+
+**Notebook fallback:** when fewer than `top_k` candidates pass, `find_better_twins` discards the filters and searches all rule-normal apartments. Returned results can therefore fail the requested improvements or layout tolerance, and even the query exclusion is lost in that fallback. The plot title's "same layout" means approximate area/count matching when the filters remain active, not an identical floor plan.
+
+**Day 2 server behavior:** `02_model_server/app.py` keeps all requested filters and returns fewer matches when necessary, excludes the query, and recomputes fingerprints with its loaded ONNX. These are application changes; the network and anomaly threshold are unchanged.
+
+The saved demonstration query is `2e4d7e256fa899bb4acc18722bceb95f`. Its three shown candidates have indoor daytime traffic maxima approximately **49.97**, **47.06**, and **54.66 dBA**, compared with **69.09 dBA** for the query. This is an illustrative retrieval result, not an independent retrieval benchmark.
+
+`full_apartments_catalog.npz` stores IDs, rule labels, the `(44195, 24)` feature matrix and `(44195, 8)` fingerprints. It is **5,340,741 bytes** (about 5.09 MiB). The older 300-apartment JSON catalog is retained as a compact companion; it no longer defines the full search pool. Similarity needs a derived reference catalog even though scoring a new apartment does not need the original CSV.
 
 ## Run it locally
 
@@ -135,18 +155,30 @@ for scoring a new apartment. A valid 24-feature input is still required.
 
 ## Call it from a program
 
-This is direct model inference, not a call to an already deployed HTTP API.
+This is direct model inference. Run from the repository root or from `01_autoencoder/model_app/` to use local exports. If local files are absent, the example fetches them from Hugging Face and checks that the model matches this card's export. The checksum check rejects a different export rather than silently using it with this card's instructions. The Day 2 API caller is documented separately in `02_model_server/`.
 
 ```python
+import hashlib
 import json
+from pathlib import Path
 import numpy as np
 import onnxruntime as ort
 from huggingface_hub import hf_hub_download
 
 repo_id = "iaac-maai/hackathon-team5-swiss-dwellings"
-model_path = hf_hub_download(repo_id, "anomaly_ae.onnx")
-config_path = hf_hub_download(repo_id, "anomaly_ae_config.json")
-example_path = hf_hub_download(repo_id, "examples/quiet_apartment_1.json")
+local_dir = Path("01_autoencoder/model_app")
+if not local_dir.is_dir():
+    local_dir = Path(".")
+# Use one complete local bundle or one remote bundle; do not mix their files.
+use_local = (local_dir / "anomaly_ae.onnx").is_file()
+def artifact(name):
+    return local_dir / name if use_local else Path(hf_hub_download(repo_id, name))
+model_path = artifact("anomaly_ae.onnx")
+config_path = artifact("anomaly_ae_config.json")
+example_path = artifact("examples/quiet_apartment_1.json")
+expected_sha256 = "884fb2b59c052b72862f0b07e9ef1b3c983c2d9e60494ae4738d35d2c24e77e3"
+if hashlib.sha256(model_path.read_bytes()).hexdigest() != expected_sha256:
+    raise ValueError("This model differs from the latest local export documented by this card.")
 with open(config_path, encoding="utf-8") as f:
     config = json.load(f)
 with open(example_path, encoding="utf-8") as f:
@@ -159,7 +191,7 @@ if not np.isfinite(raw).all() or not np.isfinite(mean).all() or not np.isfinite(
     raise ValueError("All features and scaler values must be finite, and scales positive.")
 x = ((raw - mean) / scale).astype(np.float32)
 session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
-reconstruction, latent = session.run(None, {"features": x})
+reconstruction, latent = session.run(["reconstruction", "latent"], {session.get_inputs()[0].name: x})
 feature_error = (x - reconstruction)**2
 score = feature_error.mean(axis=1)
 threshold = config["threshold"]
@@ -177,13 +209,15 @@ print({"score": score.tolist(), "threshold": threshold,
 | `anomaly_ae_config.json` | Ordered input features, stored scaler arrays, threshold, latent size and recorded AUC |
 | `examples/` | Four apartment-level JSON inputs, retaining CC BY 4.0 attribution |
 | `requirements.txt` | Pinned inference dependencies |
+| `anomaly_ae.pt` | Local PyTorch state dictionary for the selected model |
+| `full_apartments_catalog.npz` | Full 44,195-apartment feature/reference catalog and fingerprints |
+| `quiet_twins_catalog.json` | Compact 300-normal-test-apartment reference retained from the earlier search |
 | `fig1_training_curves.png` | Three-model training/validation curves |
 | `fig4_reconstructions.png` | Observed/reconstructed saved-example feature profiles |
 | `fig2_anomaly_histogram_roc.png` | Noise-rule score histogram and ROC |
 | `fig3_feature_breakdown_and_quiet_twins.png` | Error contributions and experimental candidate comparison |
 
-Local-only companion exports include PyTorch `anomaly_ae.pt` and the optional `quiet_twins_catalog.json`.
-No full dataset, credentials or future-day server implementation is part of this publication.
+This release includes the model, configuration, examples, reference catalogs, figures and inference requirements listed above; they are also kept together in the local `model_app/` folder. Scoring uses ONNX and config; retrieval also needs a reference catalog. No original CSV or ZIP is needed at inference time. The NPZ contains derived apartment measurements, not just model weights; retain dataset attribution when sharing it. Its object-array identifiers require pickle-enabled loading, so load only the trusted team-produced artifact, never an uploaded/untrusted NPZ.
 
 ## Limitations
 
@@ -196,10 +230,15 @@ No full dataset, credentials or future-day server implementation is part of this
 3. **Missed noisy apartments.** Recall is 0.2144. A low score does not certify a quiet apartment, and a high score
    can result from unusual geometry or views. The 95th-percentile rule targets roughly 5% of validation normals;
    it does not guarantee a 5% false-positive rate on new buildings.
-4. **Aggregation and similarity.** Room roles/spatial arrangement are lost. The catalogue comes from normal test
-   apartments, so retrieval needs a separate reference catalogue and independent evaluation. There are no strict
-   daylight/layout/noise-improvement filters, nor evidence about listings, price or perceived comfort.
-5. **Export precision.** Stored scaler arrays/examples are rounded. Saved notebook outputs show five-sample
+4. **Aggregation and similarity.** Room roles/spatial arrangement are lost. The full reference pool includes training,
+   validation and test apartments, so this demonstration is not an independent retrieval evaluation. The notebook's
+   fallback can discard its filters. Even with filters enforced by the Day 2 server, area/count similarity is not an
+   identical plan; acoustic improvement checks daytime traffic, not every noise metric. There is no evidence about
+   available listings, price, perceived comfort or measured daylight improvement.
+5. **Reproducibility and bundle consistency.** Seed 42 does not guarantee identical runs across hardware/software or
+   cell execution orders. Models are initialized before the training function resets its seed. Keep weights, scaler,
+   threshold, feature order and fingerprints matched; recompute fingerprints when the model changes.
+6. **Export precision.** Stored scaler arrays/examples are rounded. Saved notebook outputs show five-sample
    PyTorch/ONNX score agreement, not coverage of every possible input. Validate missing values and schema at serving time.
 
 ## AI disclosure
