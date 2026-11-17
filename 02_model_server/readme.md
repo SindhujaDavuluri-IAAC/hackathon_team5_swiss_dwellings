@@ -4,7 +4,7 @@
 
 **Hugging Face synchronization:** latest model and matching artifacts published on 17 November 2026 (commit `1f410d690ad7e6e6d46442e856f9232183542973`). All 15 release files were verified against local SHA-256 checksums. The local server checksum now matches this export.
 
-**Public Render URL: PENDING - add the actual assigned URL after deployment.**
+**Public Render URL:** https://hackathon-team5-swiss-dwellings.onrender.com
 Local address: http://127.0.0.1:7860. Local execution does not complete the public deployment requirement.
 
 ## What this server does
@@ -26,7 +26,7 @@ The development notebook follows Tuesday sections **0, 1, and 2.1-2.7** of the c
 
 The submission caller is deliberately independent. It embeds one apartment example and checks `/health` before calling `/predict`. It can run from any folder with just the client packages and a reachable service URL. It never imports `app.py`, loads the catalog or retrains the model.
 
-The new development notebook now has the valid filename **`02_development.ipynb`**; the comma in the original empty filename was corrected. Both notebooks contain local execution evidence after verification. Online evidence still requires deploying the service and rerunning the caller with its actual public URL.
+The new development notebook now has the valid filename **`02_development.ipynb`**; the comma in the original empty filename was corrected. Earlier local outputs were cleared from the development walkthrough when switching it to Render; the submission caller contains the verified live results. The standalone caller now contains saved live Render outputs. The development notebook can be rerun for a fresh walkthrough of the same service.
 
 ## Latest project changes reviewed
 
@@ -87,7 +87,7 @@ Install `gradio_client==2.7.2`, start the local server, and run this Python exam
 import json
 from gradio_client import Client
 
-MODEL_URL = "http://127.0.0.1:7860"  # replace with the assigned Render URL
+MODEL_URL = "https://hackathon-team5-swiss-dwellings.onrender.com"
 payload = {
     "label": "Noisy Anomaly Apartment #1 (Street Traffic)",
     "site_id": 3879,
@@ -144,13 +144,13 @@ If startup says hash mismatch, the remote ONNX does not match this bundle. Publi
 
 Noise labels are percentile-based proxies rather than independently measured ground truth. Label cutoffs use the full dataset, and held-out anomalies may share buildings with training normals, so reported evaluation has leakage limitations. Precision was measured on a balanced test set and may change in real use. Low recall means a normal result does not certify quietness. Features lose room arrangement; daylight/sun proxies are not a complete lighting assessment. Catalog apartments are historical examples, not live listings.
 
-The Day 2 server is configured as a public Tuesday model API; this does not establish that it is deployed yet. Password protection, database storage and the Cloudflare app belong to Wednesday's submission.
+The Day 2 server is deployed as a public Tuesday model API. Its live health and prediction calls were verified on 17 November 2026. Password protection, database storage and the Cloudflare app belong to Wednesday's submission.
 
 ## Submission status and links
 
 - **Verified locally:** all four examples, direct inference, Gradio client, HTTP event-stream caller, and invalid-input handling. The three call methods agree on score **0.369311** for the saved noisy query and return the same three twins. See executed `call_api.ipynb` outputs.
 - Tested ONNX Runtime **1.20.1**; the course example version 1.31.1 caused a Windows native import crash here. The pinned environment passes `pip check`.
-- Public deployment URL and saved online outputs: **pending Render deployment**.
+- **Verified online on 17 November 2026:** https://hackathon-team5-swiss-dwellings.onrender.com. `/health` confirms the published model checksum and release; `call_api.ipynb` contains successful Gradio client and HTTP predictions with matching score **0.369311** and the same three twins.
 - [Development walkthrough](02_development.ipynb)
 - [Submission API caller](call_api.ipynb)
 - [Day 1 notebook](../01_autoencoder/notebook/autoencoder.ipynb)
