@@ -1,0 +1,17 @@
+# Wednesday: Cloudflare Pages + Functions + D1. No file uploads, so no R2.
+name = "team5-swiss-dwellings"
+pages_build_output_dir = "./public"
+compatibility_date = "2026-11-01"
+
+[vars]
+MODEL_URL = "https://hackathon-team5-swiss-dwellings.onrender.com"
+MODEL_API_NAME = "predict"
+EXPECTED_MODEL_SHA256 = "884fb2b59c052b72862f0b07e9ef1b3c983c2d9e60494ae4738d35d2c24e77e3"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "team5-swiss-dwellings-db"
+# D1 database created in the team member's Cloudflare account.
+database_id = "99a62e6c-464b-41d4-98b0-69c6978853f8"
+
+# APP_PASSWORD is a secret. Configure .dev.vars locally and a Pages secret online.

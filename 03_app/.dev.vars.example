@@ -1,0 +1,4 @@
+# Copy to .dev.vars and set a private local password. Never commit .dev.vars.
+APP_PASSWORD=""
+# Optional: override MODEL_URL for local inference; otherwise use Render.
+# MODEL_URL="http://127.0.0.1:7861"
