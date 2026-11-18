@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quiet & Bright | Swiss Dwellings</title><link rel="stylesheet" href="/style.css"><script type="module" src="/app.js"></script></head>
+<body><div class="shell">
+<nav class="topbar"><a href="/" class="brand">SWISS DWELLINGS / TEAM 5</a><div><a href="#history-section">Saved analyses</a><button id="logout" class="text-button" type="button">Log out</button></div></nav>
+<header class="hero"><span class="eyebrow">Quiet & Bright Twin Finder</span><h1>A quieter place.<br>A brighter possibility.</h1><p>Understand your apartment's environmental profile and discover comparable spaces with the qualities you care about.</p><div class="pills"><span>44,195 reference apartments</span><span>Noise / sunlight / views / layout</span><span>Saved prediction history</span></div></header>
+<div id="notice" class="notice" role="status" hidden></div>
+<main>
+<div class="workspace">
+<form id="apartment-form" class="panel input-panel">
+<h2 class="step">01 / Choose your starting point</h2><p class="muted">Start with a saved example or enter custom measurements.</p>
+<label for="example">Starting apartment</label><select id="example"></select>
+<h2 class="step">02 / Set your priorities</h2>
+<label class="check"><input id="acoustics" type="checkbox" checked>Lower daytime traffic noise</label>
+<label class="check"><input id="sunlight" type="checkbox" checked>More equinox sunlight</label>
+<label class="check"><input id="views" type="checkbox" checked>Better sky and greenery views</label>
+<label for="top-k">Number of matches <output id="top-k-value" for="top-k">3</output></label><input id="top-k" type="range" min="1" max="5" step="1" value="3">
+<p class="small muted">Matches have area within +/-25% and area-record count within +/-2. Fewer may meet every goal.</p>
+<details class="measurements"><summary>Review or edit the 24 measurements</summary><p class="small muted">Use original dataset units. Sun/view inputs are simulation measures; area records include ancillary spaces.</p><div id="feature-fields"></div></details>
+<button id="analyse" class="primary" type="submit">Analyse profile & find twins</button>
+</form>
+<div class="result-column"><section id="summary" aria-live="polite"></section><section id="errors"></section></div>
+</div>
+<section id="twins" class="section-space"></section>
+<section class="panel section-space" id="guide"><div class="section-label">Your apartment guide</div><h2>Make sense of your results</h2><p class="muted">Choose a question. Answers use the latest analysis and actual apartment measurements.</p><div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="Apartment guide conversation"></div><div id="question-buttons" class="question-grid"></div><button id="clear-chat" class="secondary full" type="button">Clear conversation</button></section>
+<details class="panel section-space"><summary>Compare the measurements</summary><div id="comparison" class="table-scroll"></div></details>
+<section id="history-section" class="panel section-space"><div class="section-heading"><div><div class="section-label">Your shared workspace</div><h2>Saved analyses</h2></div><button id="refresh-history" class="secondary" type="button">Refresh history</button></div><p class="muted small">The latest 20 analyses saved by users of this password-protected app. Select an entry to reopen its inputs and result.</p><p id="history-status" role="status" class="small muted"></p><div id="history"></div></section>
+</main>
+<footer>Research prototype using Swiss Dwellings v3.0.0 (Archilyse, CC BY 4.0). Historical examples are not live listings. Area/count similarity does not establish an identical floor plan. Noise-rule metrics are preliminary; a non-flagged result does not certify quietness.</footer>
+</div></body></html>
