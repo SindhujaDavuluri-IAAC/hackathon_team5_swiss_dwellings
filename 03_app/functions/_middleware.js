@@ -1,7 +1,7 @@
 // Run before static pages and API routes. The model itself stays on Render.
 const COOKIE = "swiss_session";
 const DAY = 86400;
-const PUBLIC = new Set(["/login", "/login.html", "/login.js", "/style.css", "/api/login", "/api/register"]);
+const PUBLIC = new Set(["/login", "/login.html", "/login.js", "/style.css", "/api/login", "/api/register", "/api/team-login"]);
 export async function tokenHash(token) {
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
   return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, "0")).join("");

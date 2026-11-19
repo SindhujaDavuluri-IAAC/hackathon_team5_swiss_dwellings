@@ -10,6 +10,32 @@ async function passwordHash(password, salt) {
   return hex(new Uint8Array(bits));
 }
 
+export async function teamLogin({request, env}) {
+  if (!env.USERS_DB || !env.APP_PASSWORD) return Response.json({error: "Team access is unavailable."}, {status: 503});
+  let data;
+  try { data = await readJson(request, 4096); }
+  catch (e) { return Response.json({error: e.message}, {status: e.status || 400}); }
+  const db = env.USERS_DB;
+  const now = Math.floor(Date.now() / 1000);
+  const key = await tokenHash("ip:" + (request.headers.get("CF-Connecting-IP") || "unknown"));
+  const attempt = await db.prepare(
+    "INSERT INTO auth_attempts (key,count,window_start) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN window_start<=? THEN 1 ELSE count+1 END, window_start=CASE WHEN window_start<=? THEN excluded.window_start ELSE window_start END RETURNING count"
+  ).bind(key, now, now - 900, now - 900).first();
+  if (attempt.count > 10) return Response.json({error: "Too many attempts. Try again later."}, {status: 429});
+  if (typeof data?.password !== "string" || !data.password || data.password.length > 256)
+    return Response.json({error: "Incorrect team password."}, {status: 401});
+  const expectedKey = await crypto.subtle.importKey("raw", encoder.encode(env.APP_PASSWORD), {name:"HMAC", hash:"SHA-256"}, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", expectedKey, encoder.encode("team-access"));
+  const enteredKey = await crypto.subtle.importKey("raw", encoder.encode(data.password), {name:"HMAC", hash:"SHA-256"}, false, ["verify"]);
+  if (!await crypto.subtle.verify("HMAC", enteredKey, signature, encoder.encode("team-access")))
+    return Response.json({error: "Incorrect team password."}, {status: 401});
+  // One reserved, non-login identity satisfies the session table's foreign key;
+  // no individual team member account or email is created.
+  await db.prepare("INSERT OR IGNORE INTO users (id,email,password_salt,password_hash,created_at) VALUES (?, ?, ?, ?, ?)")
+    .bind("team-access", "team-access", "", "", now).run();
+  return Response.json({ok: true}, {headers: {"Set-Cookie": sessionCookie(request, await issueSession(db, "team-access"))}});
+}
+
 export async function authenticate({request, env}, register) {
   if (!env.USERS_DB) return Response.json({error: "Account service unavailable."}, {status: 503});
   let data;

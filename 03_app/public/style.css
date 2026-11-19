@@ -404,7 +404,7 @@ label {
   margin: 12px 0 6px;
   color: var(--yale);
 }
-select, input[type=number], input[type=password] {
+select, input[type=number], input[type=password], input[type=email] {
   width: 100%;
   background: var(--surface);
   color: var(--yale);
