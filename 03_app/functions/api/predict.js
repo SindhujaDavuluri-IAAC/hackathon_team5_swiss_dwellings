@@ -79,7 +79,7 @@ export async function onRequestPost({request, env}) {
   let input;
   try { input = normalize(await readJson(request)); }
   catch (error) { return Response.json({error: error.message}, {status: error.status || 400}); }
-  if (!env.DB) return Response.json({error: "D1 is not configured. Follow the setup README."}, {status: 503});
+  if (!env.DB) return Response.json({error: "The service is temporarily unavailable. Please try again later."}, {status: 503});
   let result;
   try {
     result = await callModel(env, input);
@@ -94,7 +94,7 @@ export async function onRequestPost({request, env}) {
       .bind(id,createdAt,input.apartment_id || null,input.label || "Custom apartment",JSON.stringify(input),result.score,result.threshold,result.is_anomaly ? 1 : 0,result.model_sha256,JSON.stringify(result)).run();
   } catch (error) {
     console.error("D1 save failed:", error.message);
-    return Response.json({error: "The model answered, but the result could not be saved. Check the D1 binding and run the schema setup before retrying."}, {status: 503});
+    return Response.json({error: "The analysis could not be completed. Please try again later."}, {status: 503});
   }
   return Response.json({id, created_at: createdAt, input, ...result});
 }

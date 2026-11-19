@@ -1,33 +1,20 @@
 // Run before static pages and API routes. The model itself stays on Render.
 const COOKIE = "swiss_session";
 const DAY = 86400;
-const PUBLIC = new Set(["/login", "/login.html", "/login.js", "/style.css", "/api/login"]);
-const encoder = new TextEncoder();
-
-function encode(bytes) {
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const PUBLIC = new Set(["/login", "/login.html", "/login.js", "/style.css", "/api/login", "/api/register"]);
+export async function tokenHash(token) {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, "0")).join("");
 }
-function decode(text) {
-  if (!/^[A-Za-z0-9_-]+$/.test(text)) throw new Error("Invalid token");
-  return Uint8Array.from(atob(text.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+export function getToken(request) {
+  return request.headers.get("Cookie")?.match(/(?:^|;\s*)swiss_session=([a-f0-9]{64})(?:;|$)/)?.[1];
 }
-async function signingKey(password) {
-  return crypto.subtle.importKey("raw", encoder.encode(password), {name: "HMAC", hash: "SHA-256"}, false, ["sign", "verify"]);
-}
-export async function issueSession(password) {
-  const payload = encode(encoder.encode(JSON.stringify({exp: Math.floor(Date.now()/1000) + DAY, nonce: crypto.randomUUID()})));
-  const signature = await crypto.subtle.sign("HMAC", await signingKey(password), encoder.encode(payload));
-  return `${payload}.${encode(new Uint8Array(signature))}`;
-}
-export async function validSession(token, password) {
-  if (!password || !token || token.length > 1024) return false;
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 2) return false;
-    if (!await crypto.subtle.verify("HMAC", await signingKey(password), decode(parts[1]), encoder.encode(parts[0]))) return false;
-    const data = JSON.parse(new TextDecoder().decode(decode(parts[0])));
-    return Number.isInteger(data.exp) && data.exp > Math.floor(Date.now()/1000);
-  } catch { return false; }
+export async function issueSession(db, userId) {
+  const token = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join("");
+  const now = Math.floor(Date.now() / 1000);
+  await db.prepare("DELETE FROM sessions WHERE expires_at <= ?").bind(now).run();
+  await db.prepare("INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)").bind(await tokenHash(token), userId, now + DAY).run();
+  return token;
 }
 export function sessionCookie(request, token, clear = false) {
   const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
@@ -63,12 +50,16 @@ export async function onRequest(context) {
     return Response.json({error: "Cross-origin request refused."}, {status: 403});
   let response;
   if (!PUBLIC.has(url.pathname)) {
-    const token = request.headers.get("Cookie")?.match(/(?:^|;\s*)swiss_session=([^;]+)/)?.[1];
-    if (!await validSession(token, env.APP_PASSWORD)) {
+    const token = getToken(request);
+    let session = null;
+    if (token && env.USERS_DB) {
+      session = await env.USERS_DB.prepare("SELECT user_id FROM sessions WHERE token_hash = ? AND expires_at > ?").bind(await tokenHash(token), Math.floor(Date.now()/1000)).first();
+    }
+    if (!session) {
       response = url.pathname.startsWith("/api/")
         ? Response.json({error: "Please log in."}, {status: 401})
         : Response.redirect(new URL("/login", url), 302);
-    }
+    } else context.data.userId = session.user_id;
   }
   response ||= await next();
   // Prevent protected pages/results from being cached after logout.

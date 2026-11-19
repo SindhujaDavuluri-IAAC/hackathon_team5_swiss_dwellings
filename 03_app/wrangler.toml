@@ -14,4 +14,7 @@ database_name = "team5-swiss-dwellings-db"
 # D1 database created in the team member's Cloudflare account.
 database_id = "99a62e6c-464b-41d4-98b0-69c6978853f8"
 
-# APP_PASSWORD is a secret. Configure .dev.vars locally and a Pages secret online.
+[[d1_databases]]
+binding = "USERS_DB"
+database_name = "team5-swiss-users"
+database_id = "ece64029-d66f-4ea6-992b-7f4f7fd0db4e"

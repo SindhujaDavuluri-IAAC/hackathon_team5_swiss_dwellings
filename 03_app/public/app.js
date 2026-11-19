@@ -5,6 +5,13 @@ const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;",
 const fmt = (value, digits=2) => Number(value).toFixed(digits);
 const localTime = value => new Date(value).toLocaleString();
 
+// Dataset identifiers are available; the example names and prices are not verified listings.
+for (const example of Object.values(EXAMPLES)) {
+  example.label = `Site ${example.site_id} • Building ${example.building_id}`;
+  example.city = `Site ${example.site_id}`;
+  example.tag = example.tag_type === "anomaly" ? "Need Renovation" : "Market Ready";
+}
+
 let current = null;
 let activeMeta = {};
 let activeKey = "noisy_apartment_1";
@@ -18,23 +25,13 @@ let messages = [];
 
 const goals = [["acoustics","improve_acoustics"],["sunlight","improve_sunlight"],["views","improve_view"]];
 const questionLabels = {
-  score: "What does the Unusualness Percentile & 95th-percentile threshold mean?",
+  score: "What do the reconstruction score and threshold mean?",
   flag: "Why was this apartment flagged as unusual?",
   twins: "How do the 3–5 architect twins improve on this apartment?",
   matches: "How are the 44,195 reference apartments filtered and ranked?",
   measurements: "What do the 24 Swiss Dwellings measurements represent?",
   reliability: "How should a Real Estate Agent or Architect use this studio?"
 };
-
-// Map raw reconstruction score to a calibrated 0..99.9th percentile across the 44,195 catalog
-// By training definition, threshold (0.179884) is the 95.0th percentile of rule-normal validation apartments.
-function scoreToPercentile(score, threshold = 0.179884) {
-  const r = Math.max(0, Number(score) / Math.max(1e-6, Number(threshold)));
-  if (r <= 0.25) return Math.max(4, Math.round(r * 140)); // 0..35th
-  if (r <= 0.60) return Math.round(35 + ((r - 0.25) / 0.35) * 37); // 35..72nd
-  if (r <= 1.00) return Math.round(72 + ((r - 0.60) / 0.40) * 23); // 72..95th (threshold = 95th!)
-  return Math.min(99.9, Number((95 + 4.9 * (1 - Math.exp(-(r - 1.0) * 1.15))).toFixed(1)));
-}
 
 function notice(text="", error=false) {
   $("notice").textContent = text;
@@ -45,7 +42,7 @@ function notice(text="", error=false) {
 function busy(value) {
   $("analyse").disabled = value;
   $("analyse").innerHTML = value
-    ? '<span class="spinner"></span> Evaluating Profile & Saving to Cloudflare D1...'
+    ? '<span class="spinner"></span> Evaluating profile...'
     : "Evaluate Normality & Find Better Spatial Twins";
   $("apartment-form").setAttribute("aria-busy", String(value));
 }
@@ -206,7 +203,7 @@ function updateBlueprintFromInputs() {
   if (readout) {
     readout.innerHTML = `
       <span class="readout-pill"><i class="readout-dot" style="background:#F56200"></i>Window Traffic: ${fmt(f.window_traffic_day_max, 1)} dBA</span>
-      <span class="readout-pill"><i class="readout-dot" style="background:#eab308"></i>Equinox Sun: ${fmt(f.sun_equinox_noon_mean, 2)} klx</span>
+      <span class="readout-pill"><i class="readout-dot" style="background:#eab308"></i>Equinox sun simulation: ${fmt(f.sun_equinox_noon_mean, 2)}</span>
       <span class="readout-pill"><i class="readout-dot" style="background:#2a9d8f"></i>Sky View: ${fmt(f.view_sky_mean, 3)} sr</span>
     `;
   }
@@ -216,14 +213,14 @@ function updateBlueprintFromInputs() {
 // SEMICIRCULAR PERCENTILE GAUGE + 4-DOMAIN RADAR FOR REAL ESTATE AGENT
 // ============================================================================
 function generateGaugeAndRadarSVG(saved, domainShares) {
-  const pct = scoreToPercentile(saved.score, saved.threshold);
-  const angle = (-180 + (pct / 100) * 180) * (Math.PI / 180);
+  const ratio = saved.score / saved.threshold;
+  const angle = (-180 + Math.min(1, ratio / 2) * 180) * (Math.PI / 180);
   const cx = 112, cy = 104, r = 74;
   const nx = cx + r * Math.cos(angle);
   const ny = cy + r * Math.sin(angle);
 
   // 95th percentile cutoff tick
-  const tRad = (-180 + 0.95 * 180) * (Math.PI / 180);
+  const tRad = (-180 + 0.5 * 180) * (Math.PI / 180);
   const tx1 = cx + (r - 10) * Math.cos(tRad);
   const ty1 = cy + (r - 10) * Math.sin(tRad);
   const tx2 = cx + (r + 10) * Math.cos(tRad);
@@ -242,7 +239,7 @@ function generateGaugeAndRadarSVG(saved, domainShares) {
   ];
   const polyPoints = pts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
 
-  return `<svg viewBox="0 0 435 155" class="gauge-radar-svg" role="img" aria-label="Unusualness percentile gauge and 4-domain radar">
+  return `<svg viewBox="0 0 435 155" class="gauge-radar-svg" role="img" aria-label="Score relative to threshold and reconstruction error by domain">
     <!-- Left: Semicircle Percentile Dial -->
     <path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none" stroke="#E2EEF7" stroke-width="14" stroke-linecap="round"/>
     <!-- Normal Blue Zone (0th to 95th Percentile) -->
@@ -252,9 +249,9 @@ function generateGaugeAndRadarSVG(saved, domainShares) {
     <circle cx="${cx}" cy="${cy}" r="6.5" fill="#133C55"/>
     <!-- 95th Percentile Cutoff Marker -->
     <line x1="${tx1.toFixed(1)}" y1="${ty1.toFixed(1)}" x2="${tx2.toFixed(1)}" y2="${ty2.toFixed(1)}" stroke="#F56200" stroke-width="2.5"/>
-    <text x="${(tx2 + 4).toFixed(1)}" y="${(ty2 - 6).toFixed(1)}" text-anchor="end" font-size="8" font-weight="800" fill="#F56200">95th PCT CUTOFF</text>
-    <text x="${cx}" y="${cy + 24}" text-anchor="middle" font-size="17" font-weight="800" fill="${strokeCol}">${pct}th Percentile</text>
-    <text x="${cx}" y="${cy + 39}" text-anchor="middle" font-size="9.5" fill="#4A6D88">Unusualness Rank (Cutoff: 95th Pct • ${fmt(saved.score_vs_threshold, 2)}x)</text>
+    <text x="${(tx2 + 4).toFixed(1)}" y="${(ty2 - 6).toFixed(1)}" text-anchor="end" font-size="8" font-weight="800" fill="#F56200">1× THRESHOLD</text>
+    <text x="${cx}" y="${cy + 24}" text-anchor="middle" font-size="17" font-weight="800" fill="${strokeCol}">${fmt(ratio, 2)}× threshold</text>
+    <text x="${cx}" y="${cy + 39}" text-anchor="middle" font-size="9.5" fill="#4A6D88">Gauge range: 0 to 2× (capped)</text>
 
     <!-- Right: 4-Domain Radar -->
     <circle cx="${rcx}" cy="${rcy}" r="${rr}" fill="none" stroke="#CBE0F0" stroke-dasharray="3,3"/>
@@ -272,12 +269,10 @@ function generateGaugeAndRadarSVG(saved, domainShares) {
 
 function emptyView() {
   const ex = EXAMPLES[activeKey];
-  const previewPct = ex?.preview_pct ?? "--";
-  const isAnom = ex?.tag_type === "anomaly";
   $("summary").innerHTML = `<div class="empty">
     <span class="section-label">USER STORY 01 • REAL ESTATE AGENT VIEW</span>
     <h2>Selected: ${esc(ex ? ex.label : "Custom Apartment Profile")}</h2>
-    <p>Catalog Preview Rank: <strong>${previewPct}th Unusualness Percentile</strong> (${isAnom ? "Above 95th-percentile threshold — Flagged" : "Below 95th-percentile threshold — Normal"}). Click <strong>Evaluate Normality &amp; Find Better Spatial Twins</strong> on the left to run the live ONNX model and log this property to Cloudflare D1.</p>
+    <p>These are historical dataset examples, not verified listings. The bubble diagram is illustrative, not an actual floor plan. Click Evaluate to score this apartment and save the result.</p>
   </div>`;
   $("errors").innerHTML = `<div class="empty">
     <h3>4-Dimension Environmental Breakdown</h3>
@@ -285,8 +280,8 @@ function emptyView() {
   </div>`;
   $("twins").innerHTML = `<div class="empty">
     <span class="section-label">USER STORY 02 • ARCHITECT SPATIAL TWIN ENGINE</span>
-    <h3>3–5 Layout-Matched Spatial Twins</h3>
-    <p>Click <strong>Evaluate Normality &amp; Find Better Spatial Twins</strong> to retrieve 3–5 similar apartments from the 44,195 catalog (&plusmn;25% area, &plusmn;2 rooms) with their own organic bubble diagrams and improvement badges.</p>
+    <h3>Similar Reference Apartments</h3>
+    <p>Evaluate to search the catalog. Fewer than the requested number may satisfy the selected filters; the bubble diagrams are illustrative.</p>
   </div>`;
   $("comparison").textContent = "Run an evaluation to populate the side-by-side comparison table.";
 }
@@ -295,7 +290,7 @@ function resetChat() {
   messages = [{
     role: "assistant",
     text: current
-      ? `Evaluation ready for "${current.input.label || "Selected Apartment"}". Choose any question above for a plain-English explanation of its normality percentile and spatial twins.`
+      ? `Evaluation ready for "${current.input.label || "Selected Apartment"}". Choose a question for an explanation of its score and matches.`
       : "Pick any of the 50 apartments above and click 'Evaluate Normality & Find Better Spatial Twins', or click a question button to learn how the studio works."
   }];
   drawChat();
@@ -381,7 +376,6 @@ function renderCarouselCards() {
     card.className = `listing-card ${key === activeKey ? "selected" : ""}`;
     card.dataset.key = key;
     const isAnom = example.tag_type === "anomaly";
-    const pct = example.preview_pct ?? scoreToPercentile(example.preview_score || 0.1);
     card.innerHTML = `
       <div class="listing-card-top">
         <span class="listing-city">${esc(example.city || `Site ${example.site_id}`)}</span>
@@ -392,10 +386,10 @@ function renderCarouselCards() {
         <span><strong>${fmt(f.apt_total_area, 0)} m²</strong>Area</span>
         <span><strong>${fmt(f.apt_room_count, 0)}</strong>Rooms</span>
         <span><strong>${fmt(f.noise_traffic_day_max, 0)} dB</strong>Traffic</span>
-        <span><strong>${pct}th</strong>Pct Rank</span>
+        <span><strong>Evaluate</strong>Model score</span>
       </div>
       <div class="listing-footer">
-        <span class="listing-price">${esc(example.price_chf || "Swiss Listing")}</span>
+        <span class="listing-price">Historical example</span>
         <span class="listing-cta">Inspect &rarr;</span>
       </div>
     `;
@@ -498,7 +492,7 @@ $("apartment-form").addEventListener("submit", async event => {
   const controller = new AbortController();
   pending = controller;
   busy(true);
-  notice("Evaluating apartment normality on Render & saving audit to Cloudflare D1...");
+  notice("Evaluating apartment profile...");
   try {
     const saved = await api("/api/predict", {
       method: "POST",
@@ -509,8 +503,7 @@ $("apartment-form").addEventListener("submit", async event => {
     if (requestRevision !== revision) return;
     focusedTwinIdx = 0;
     render(saved);
-    notice(`Evaluation saved to Cloudflare D1 (${saved.twins.length} spatial twins retrieved). Switch between User Story 01 and User Story 02 below!`);
-    await loadHistory();
+    notice(`Evaluation complete (${saved.twins.length} reference apartments found). Switch between the views below.`);
   } catch (error) {
     if (requestRevision === revision && error.name !== "AbortError") notice(error.message, true);
   } finally {
@@ -528,7 +521,6 @@ function render(saved) {
   const total = Object.values(errors).reduce((a, b) => a + b, 0);
   const maximum = Math.max(...Object.values(errors));
   const colors = {};
-  const pct = scoreToPercentile(saved.score, saved.threshold);
 
   // Compute 4 intuitive dimension ratings
   const domainShares = GROUPS.map(([name, start, end, color]) => {
@@ -537,23 +529,16 @@ function render(saved) {
     const sumErr = slice.reduce((sum, key) => sum + errors[key], 0);
     const meanErr = sumErr / slice.length;
     const share = (100 * sumErr) / Math.max(total, 1e-12);
-    const ratioToCutoff = meanErr / Math.max(1e-6, saved.threshold);
-    const isFlaggedDomain = meanErr > saved.threshold || (saved.is_anomaly && share >= 28);
-    const statusText = ratioToCutoff > 1.25
-      ? "Needs Upgrade"
-      : ratioToCutoff > 0.75
-      ? "Borderline"
-      : "Typical Range";
-    return {name, start, end, color, sumErr, meanErr, share, ratioToCutoff, isFlaggedDomain, statusText};
+    return {name, start, end, color, sumErr, meanErr, share};
   });
 
-  const flaggedDomainNames = domainShares.filter(d => d.isFlaggedDomain).map(d => d.name);
+  const largestDomain = domainShares.reduce((a, b) => a.share >= b.share ? a : b);
 
   // Update Persona Tab headers
   $("tab-btn-agent").innerHTML = `
     <span class="persona-step">USER STORY 01 • REAL ESTATE AGENT</span>
-    <strong>${saved.is_anomaly ? `Flagged (${pct}th Pct)` : `Normal (${pct}th Pct)`}</strong>
-    <small>Cutoff: 95th Percentile (${fmt(saved.score_vs_threshold, 2)}x threshold)</small>
+    <strong>${saved.is_anomaly ? "Flagged" : "Not flagged"} (score ${fmt(saved.score, 4)})</strong>
+    <small>Threshold ${fmt(saved.threshold, 4)} (${fmt(saved.score_vs_threshold, 2)}x)</small>
   `;
   $("tab-btn-architect").innerHTML = `
     <span class="persona-step">USER STORY 02 • ARCHITECT VIEW</span>
@@ -568,16 +553,16 @@ function render(saved) {
     <div class="panel verdict-panel ${saved.is_anomaly ? "verdict-flagged" : "verdict-normal"}">
       <div class="status-line">
         <div>
-          <div class="section-label">USER STORY 01 • REAL ESTATE AGENT MARKET-READINESS REPORT</div>
+          <div class="section-label">USER STORY 01 • APARTMENT PROFILE REPORT</div>
           <h2>${esc(saved.input.label || "Evaluated Apartment Profile")}</h2>
         </div>
         <span class="badge ${saved.is_anomaly ? "flagged" : ""}">
-          ${saved.is_anomaly ? "UNUSUAL PROFILE • ABOVE 95th PCT CUTOFF" : "NORMAL PROFILE • MARKET READY"}
+          ${saved.is_anomaly ? "UNUSUAL PROFILE • ABOVE THRESHOLD" : "PROFILE NOT FLAGGED"}
         </span>
       </div>
 
       <p class="small muted">
-        Compares all 24 environmental and layout measurements against 44,195 Swiss apartments. Properties below the <strong>95th Percentile Cutoff</strong> behave like typical quiet-rule Swiss apartments; properties above the 95th percentile are flagged for an Architect to review.
+        The model reconstructs 24 measurements and compares the error with a threshold set at the 95th percentile of normal validation errors. A flag does not establish a defect; a non-flag does not guarantee quietness.
       </p>
 
       <div class="gauge-radar-wrap">
@@ -586,33 +571,33 @@ function render(saved) {
 
       <div class="metric-grid">
         <div class="metric">
-          <strong>${pct}th Pct</strong>
-          <span>Unusualness Percentile</span>
+          <strong>${fmt(saved.score, 4)}</strong>
+          <span>Reconstruction score</span>
         </div>
         <div class="metric">
-          <strong>95th Pct</strong>
-          <span>Normality Cutoff Limit</span>
+          <strong>${fmt(saved.threshold, 4)}</strong>
+          <span>Score threshold</span>
         </div>
         <div class="metric">
           <strong>${fmt(saved.score_vs_threshold, 2)}x</strong>
           <span>Relative to Cutoff (1.0x)</span>
         </div>
         <div class="metric">
-          <strong>${flaggedDomainNames.length ? esc(flaggedDomainNames.join(", ")) : "All Balanced"}</strong>
-          <span>Dimensions to Improve</span>
+          <strong>${esc(largestDomain.name)}</strong>
+          <span>Largest error contribution</span>
         </div>
       </div>
 
       <div class="story-bridge-banner">
         <div>
-          <strong>${saved.is_anomaly ? "Hand Off to Architect: Flagged Dimensions Detected" : "Architect Preview: Explore Even Better Twins"}</strong>
-          <p class="small muted">Switch to <strong>User Story 02 (Architect View)</strong> to pick from ${saved.twins.length} similar apartments (${fmt(f.apt_total_area * 0.75, 0)}–${fmt(f.apt_total_area * 1.25, 0)} m², ${Math.max(2, f.apt_room_count - 2)}–${f.apt_room_count + 2} rooms) that improve on each relevant dimension.</p>
+          <strong>Explore reference apartments</strong>
+          <p class="small muted">The search found ${saved.twins.length} matches with similar area and area-record count that satisfy your selected filters. A similar fingerprint does not imply an identical floor plan.</p>
         </div>
         <button type="button" class="secondary bridge-btn" id="jump-to-architect">
           Explore ${saved.twins.length} Architect Twins &rarr;
         </button>
       </div>
-      <p class="saved-label">Saved to Cloudflare D1 at ${esc(localTime(saved.created_at))} • Reference ID: ${esc(saved.id)} (Raw score: ${fmt(saved.score, 4)} vs ${fmt(saved.threshold, 4)})</p>
+      <p class="saved-label">Score: ${fmt(saved.score, 4)} • Threshold: ${fmt(saved.threshold, 4)}</p>
     </div>
   `;
 
@@ -622,12 +607,12 @@ function render(saved) {
     <div class="domain-score-card" style="border-top: 4px solid ${d.color}">
       <div class="domain-card-top">
         <strong>${esc(d.name)} Dimension</strong>
-        <span class="domain-badge ${d.isFlaggedDomain ? "domain-bad" : "domain-ok"}">
-          ${esc(d.statusText)}
+        <span class="domain-badge domain-ok">
+          Error contribution
         </span>
       </div>
       <div class="domain-numbers">
-        <span class="domain-mse">${fmt(d.ratioToCutoff, 2)}x <small>of normality cutoff</small></span>
+        <span class="domain-mse">${fmt(d.meanErr, 3)} <small>mean squared error</small></span>
         <span class="domain-pct">${fmt(d.share, 1)}% of deviation</span>
       </div>
       <div class="track"><div class="fill" style="width:${Math.min(100, d.share)}%;background:${d.color}"></div></div>
@@ -644,7 +629,7 @@ function render(saved) {
       return `<div class="feature-error">
         <div>
           <strong>${esc(LABELS[idx])}</strong>
-          <small class="muted" style="display:block">Actual: ${fmt(f[name], 2)} vs Typical Expected: ${reconVal !== undefined ? fmt(reconVal, 2) : "--"}</small>
+          <small class="muted" style="display:block">Input: ${fmt(f[name], 2)} vs model reconstruction: ${reconVal !== undefined ? fmt(reconVal, 2) : "--"}</small>
         </div>
         <div class="track"><div class="fill" style="width:${(100 * errors[name]) / Math.max(maximum, 1e-12)}%;background:${colors[name]}"></div></div>
         <strong class="err-num">${fmt(shareOfTotal, 1)}%</strong>
@@ -653,12 +638,12 @@ function render(saved) {
 
   $("errors").innerHTML = `
     <div class="panel">
-      <div class="section-label">4-DIMENSION PROFILE RATING</div>
-      <h3>How Each Dimension Compares to Typical Swiss Apartments</h3>
-      <p class="small muted">Values below <strong>1.00x</strong> are within the typical Swiss apartment range; values above <strong>1.00x</strong> indicate unusual exposure driving the alert.</p>
+      <div class="section-label">RECONSTRUCTION ERROR BY DOMAIN</div>
+      <h3>How Each Domain Contributes to the Score</h3>
+      <p class="small muted">These show reconstruction errors, not independently validated ratings or domain-specific thresholds.</p>
       <div class="domain-cards-grid">${domainCardsHtml}</div>
       <h3 style="margin-top:22px;">Top 6 Measurements Standing Out Most (Share of Unusualness)</h3>
-      <p class="chart-note">Compares your apartment's actual measurement with what the autoencoder expects for a similar layout.</p>
+      <p class="chart-note">Compares inputs with the model reconstruction; it does not identify a cause or establish a typical value.</p>
       ${largest}
     </div>
   `;
@@ -669,7 +654,7 @@ function render(saved) {
   const comparisons = [
     ["Indoor daytime traffic", "noise_traffic_day_max", 1, " dBA", true],
     ["Window daytime traffic", "window_traffic_day_max", 1, " dBA", true],
-    ["Equinox noon sun", "sun_equinox_noon_mean", 2, " klx", false],
+    ["Equinox noon sun simulation", "sun_equinox_noon_mean", 2, "", false],
     ["Sky view horizon", "view_sky_mean", 4, " sr", false],
     ["Greenery view", "view_greenery_mean", 4, " sr", false],
     ["Floor area", "apt_total_area", 1, " m²", null],
@@ -684,7 +669,6 @@ function render(saved) {
 
   const cards = saved.twins.map((twin, i) => {
     const tf = twin.features;
-    const similarityPct = Math.max(62, Math.min(99, Math.round(100 - twin.latent_distance * 5.2)));
     const rowsHtml = comparisons.map(([label, name, digits, unit, lowerBetter]) => {
       const diff = tf[name] - f[name];
       let deltaBadge = "";
@@ -713,7 +697,7 @@ function render(saved) {
           <span class="twin-rank-tag">ARCHITECT TWIN #0${i + 1}</span>
           <h3>Site ${esc(twin.site_id)} • Building ${esc(twin.building_id)}</h3>
         </div>
-        <span class="distance-pill" title="Spatial fingerprint similarity">${similarityPct}% Match</span>
+        <span class="distance-pill" title="Latent fingerprint distance">Distance ${fmt(twin.latent_distance, 2)}</span>
       </div>
       <div class="twin-mini-blueprint">
         ${generateBubbleDiagramSVG(tf, `twin-${i}`)}
@@ -742,7 +726,7 @@ function render(saved) {
           <span class="badge">${saved.matching_candidates.toLocaleString()} Candidates Passed Filters</span>
         </div>
         <p class="small muted">
-          Each recommended apartment has a normal environmental profile, matches your layout within <strong>&plusmn;25% floor area</strong> and <strong>&plusmn;2 rooms</strong>, and improves on every checked dimension. Click any twin button below to highlight it, or load it directly into the bubble simulator.
+          Candidates pass the dataset's noise rule, match area within <strong>&plusmn;25%</strong> and area-record count within <strong>&plusmn;2</strong>, and meet the selected filters. They may not have the same floor plan. Fewer matches may be available than requested.
         </p>
         <div class="twin-selector-bar">${selectorPills}</div>
         <div class="twin-grid">${cards}</div>
@@ -786,7 +770,7 @@ function render(saved) {
       <tr>
         <th>Apartment</th>
         ${comparisons.map(([label]) => `<th>${esc(label)}</th>`).join("")}
-        <th>Fingerprint Match</th>
+        <th>Fingerprint Distance</th>
       </tr>
     </thead>
     <tbody>
@@ -799,7 +783,7 @@ function render(saved) {
         <tr>
           <th>Twin #0${i + 1} (Site ${esc(twin.site_id)} / Bldg ${esc(twin.building_id)})</th>
           ${comparisons.map(([, name, digits]) => `<td>${fmt(twin.features[name], digits)}</td>`).join("")}
-          <td><strong>${Math.max(62, Math.min(99, Math.round(100 - twin.latent_distance * 5.2)))}%</strong> (dist ${fmt(twin.latent_distance, 2)})</td>
+          <td>${fmt(twin.latent_distance, 2)}</td>
         </tr>
       `).join("")}
     </tbody>
@@ -807,67 +791,6 @@ function render(saved) {
 
   resetChat();
 }
-
-async function loadHistory() {
-  $("history-status").textContent = "Loading saved evaluations from Cloudflare D1...";
-  try {
-    const rows = await api("/api/history");
-    $("history-status").textContent = rows.length
-      ? `Showing the latest ${rows.length} saved evaluations from Cloudflare D1. Click any entry to reopen its bubble diagram, normality percentile, and twins.`
-      : "No saved evaluations in D1 yet.";
-    $("history").innerHTML = rows.map(row => {
-      const pct = scoreToPercentile(row.score, row.threshold);
-      return `
-      <button type="button" class="history-entry" data-history="${esc(row.id)}">
-        <span>
-          <strong>${esc(row.label || "Apartment Profile")}</strong>
-          <small>Catalog ID: ${esc(row.apartment_id || "Custom simulation")}</small>
-        </span>
-        <span>
-          <span class="badge ${row.is_anomaly ? "flagged" : ""}" style="font-size:11px;padding:3px 9px;">
-            ${row.is_anomaly ? `Flagged (${pct}th Pct)` : `Normal (${pct}th Pct)`}
-          </span>
-          <small style="margin-top:4px;">${row.twin_count} better twins saved</small>
-        </span>
-        <time>${esc(localTime(row.created_at))}</time>
-      </button>
-    `;
-    }).join("");
-  } catch (error) {
-    $("history-status").textContent = error.message;
-  }
-}
-
-$("refresh-history").addEventListener("click", loadHistory);
-
-$("history").addEventListener("click", async event => {
-  const button = event.target.closest("[data-history]");
-  if (!button) return;
-  dirty();
-  const requestRevision = revision;
-  button.disabled = true;
-  try {
-    const saved = await api(`/api/history?id=${encodeURIComponent(button.dataset.history)}`);
-    if (requestRevision !== revision) return;
-    activeMeta = {apartment_id: saved.input.apartment_id, label: saved.input.label};
-    const matchedKey = Object.keys(EXAMPLES).find(key => EXAMPLES[key].apartment_id === saved.input.apartment_id) || "custom";
-    $("example").value = matchedKey;
-    activeKey = matchedKey;
-    renderCarouselCards();
-    fillFeatures(saved.input.features);
-    for (const [id, name] of goals) $(id).checked = saved.input[name];
-    $("top-k").value = saved.input.top_k;
-    $("top-k-value").value = saved.input.top_k;
-    updateBlueprintFromInputs();
-    render(saved);
-    notice(`Reopened saved evaluation "${saved.input.label || saved.id}" from Cloudflare D1.`);
-    $("summary").scrollIntoView({behavior: "smooth", block: "start"});
-  } catch (error) {
-    notice(error.message, true);
-  } finally {
-    button.disabled = false;
-  }
-});
 
 $("logout").addEventListener("click", async () => {
   try {
@@ -880,24 +803,23 @@ $("logout").addEventListener("click", async () => {
 
 function explain(key) {
   if (key === "measurements") {
-    return "The 24 measurements describe four spatial qualities from Swiss Dwellings v3.0.0:\n• Acoustics (8 features): daytime & nighttime road/rail noise inside rooms and at windows (in dBA).\n• Sunlight (6 features): direct solar illuminance (klx) across equinox, summer, and winter.\n• Viewshed (5 features): open sky, greenery, buildings, streets, and visible isovist area.\n• Layout (5 features): total area (m²), room/area-record count, floor level, window perimeter, and centrality.";
+    return "The 24 features cover acoustics, sun simulations, views and layout. The model uses apartment-level aggregates from Swiss Dwellings v3.0.0.";
   }
   if (key === "reliability") {
-    return "How our two user stories work together:\n• User Story 1 (Real Estate Agent): Chooses how many apartments for sale to display (up to 50), picks one, and immediately sees its Unusualness Percentile against the 95th-percentile threshold.\n• User Story 2 (Architect): Picks an apartment that is flagged on one or more dimensions and explores 3–5 similar apartments (same area ±25% and rooms ±2) that improve on each relevant dimension.";
+    return "Choose a historical apartment example and evaluate its model score. Then explore up to five reference apartments that satisfy the selected filters. Diagrams are illustrative, not floor plans.";
   }
   if (!current) {
-    return "Please click 'Evaluate Normality & Find Better Spatial Twins' first (or select a saved entry from D1 below). I will then explain that apartment's normality percentile and twin comparisons.";
+    return "Please evaluate an apartment. I can then explain its score and reference matches.";
   }
   const f = current.input.features;
-  const pct = scoreToPercentile(current.score, current.threshold);
   if (key === "score") {
-    return `"${current.input.label || "This apartment"}" ranks at the ${pct}th Unusualness Percentile across the Swiss Dwellings catalog (${fmt(current.score_vs_threshold, 2)}x the 95th-percentile cutoff).\n\nVerdict: ${current.is_anomaly ? "FLAGGED AS UNUSUAL (Above the 95th-percentile cutoff — recommended for Architect Twin search)." : "NORMAL / MARKET READY (Within the 95th-percentile normal range of Swiss apartments)."}`;
+    return `"${current.input.label || "This apartment"}" has reconstruction score ${fmt(current.score, 4)} and threshold ${fmt(current.threshold, 4)} (${fmt(current.score_vs_threshold, 2)}x). The threshold is the 95th percentile of normal validation errors, not this apartment's percentile. Verdict: ${current.is_anomaly ? "flagged" : "not flagged"}.`;
   }
   if (key === "flag") {
     const errors = current.per_feature_squared_error;
     const total = Object.values(errors).reduce((a, b) => a + b, 0);
     const share = (100 * FEATURES.slice(0, 8).reduce((a, name) => a + errors[name], 0)) / Math.max(total, 1e-12);
-    return `${current.is_anomaly ? "It was flagged because its unusualness rank exceeds the 95th-percentile threshold." : "This apartment was NOT flagged: it sits below the 95th-percentile threshold."}\n\nTop 3 measurements standing out most:\n${Object.keys(errors).sort((a, b) => errors[b] - errors[a]).slice(0, 3).map(name => `• ${LABELS[FEATURES.indexOf(name)]}: ${fmt((100 * errors[name]) / Math.max(total, 1e-12), 1)}% of deviation`).join("\n")}\n\nAcoustics accounts for ${fmt(share, 1)}% of the overall profile deviation.`;
+    return `${current.is_anomaly ? "The reconstruction score exceeds the threshold." : "The reconstruction score does not exceed the threshold."}\n\nTop 3 error contributions:\n${Object.keys(errors).sort((a, b) => errors[b] - errors[a]).slice(0, 3).map(name => `• ${LABELS[FEATURES.indexOf(name)]}: ${fmt((100 * errors[name]) / Math.max(total, 1e-12), 1)}% of error`).join("\n")}\n\nAcoustics accounts for ${fmt(share, 1)}% of the total reconstruction error. These contributions do not establish a cause.`;
   }
   if (key === "twins") {
     if (!current.twins.length) {
@@ -907,7 +829,7 @@ function explain(key) {
       const t = twin.features;
       const dNoise = f.noise_traffic_day_max - t.noise_traffic_day_max;
       const dSun = t.sun_equinox_noon_mean - f.sun_equinox_noon_mean;
-      return `• Twin #0${i + 1} (Site ${twin.site_id}, Bldg ${twin.building_id}): Indoor traffic noise ${fmt(t.noise_traffic_day_max, 1)} dBA (${fmt(Math.abs(dNoise), 1)} dBA ${dNoise >= 0 ? "quieter" : "louder"}); Equinox sun ${fmt(t.sun_equinox_noon_mean, 2)} klx (${dSun >= 0 ? "+" : ""}${fmt(dSun, 2)} klx); Area ${fmt(t.apt_total_area, 1)} m² (yours: ${fmt(f.apt_total_area, 1)} m²).`;
+      return `• Twin #0${i + 1} (Site ${twin.site_id}, Bldg ${twin.building_id}): Indoor traffic noise ${fmt(t.noise_traffic_day_max, 1)} dBA (${fmt(Math.abs(dNoise), 1)} dBA ${dNoise >= 0 ? "quieter" : "louder"}); Equinox sun simulation ${fmt(t.sun_equinox_noon_mean, 2)} (${dSun >= 0 ? "+" : ""}${fmt(dSun, 2)}); Area ${fmt(t.apt_total_area, 1)} m² (yours: ${fmt(f.apt_total_area, 1)} m²).`;
     }).join("\n\n");
   }
   if (key === "matches") {
@@ -930,4 +852,3 @@ for (const [key, label] of Object.entries(questionLabels)) {
 
 $("clear-chat").addEventListener("click", resetChat);
 loadExample($("example").value);
-loadHistory();
