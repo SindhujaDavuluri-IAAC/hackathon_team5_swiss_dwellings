@@ -1,29 +1,219 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quiet & Bright | Swiss Dwellings</title><link rel="stylesheet" href="/style.css"><script type="module" src="/app.js"></script></head>
-<body><div class="shell">
-<nav class="topbar"><a href="/" class="brand">SWISS DWELLINGS / TEAM 5</a><div><a href="#history-section">Saved analyses</a><button id="logout" class="text-button" type="button">Log out</button></div></nav>
-<header class="hero"><span class="eyebrow">Quiet & Bright Twin Finder</span><h1>A quieter place.<br>A brighter possibility.</h1><p>Understand your apartment's environmental profile and discover comparable spaces with the qualities you care about.</p><div class="pills"><span>44,195 reference apartments</span><span>Noise / sunlight / views / layout</span><span>Saved prediction history</span></div></header>
-<div id="notice" class="notice" role="status" hidden></div>
-<main>
-<div class="workspace">
-<form id="apartment-form" class="panel input-panel">
-<h2 class="step">01 / Choose your starting point</h2><p class="muted">Start with a saved example or enter custom measurements.</p>
-<label for="example">Starting apartment</label><select id="example"></select>
-<h2 class="step">02 / Set your priorities</h2>
-<label class="check"><input id="acoustics" type="checkbox" checked>Lower daytime traffic noise</label>
-<label class="check"><input id="sunlight" type="checkbox" checked>More equinox sunlight</label>
-<label class="check"><input id="views" type="checkbox" checked>Better sky and greenery views</label>
-<label for="top-k">Number of matches <output id="top-k-value" for="top-k">3</output></label><input id="top-k" type="range" min="1" max="5" step="1" value="3">
-<p class="small muted">Matches have area within +/-25% and area-record count within +/-2. Fewer may meet every goal.</p>
-<details class="measurements"><summary>Review or edit the 24 measurements</summary><p class="small muted">Use original dataset units. Sun/view inputs are simulation measures; area records include ancillary spaces.</p><div id="feature-fields"></div></details>
-<button id="analyse" class="primary" type="submit">Analyse profile & find twins</button>
-</form>
-<div class="result-column"><section id="summary" aria-live="polite"></section><section id="errors"></section></div>
-</div>
-<section id="twins" class="section-space"></section>
-<section class="panel section-space" id="guide"><div class="section-label">Your apartment guide</div><h2>Make sense of your results</h2><p class="muted">Choose a question. Answers use the latest analysis and actual apartment measurements.</p><div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="Apartment guide conversation"></div><div id="question-buttons" class="question-grid"></div><button id="clear-chat" class="secondary full" type="button">Clear conversation</button></section>
-<details class="panel section-space"><summary>Compare the measurements</summary><div id="comparison" class="table-scroll"></div></details>
-<section id="history-section" class="panel section-space"><div class="section-heading"><div><div class="section-label">Your shared workspace</div><h2>Saved analyses</h2></div><button id="refresh-history" class="secondary" type="button">Refresh history</button></div><p class="muted small">The latest 20 analyses saved by users of this password-protected app. Select an entry to reopen its inputs and result.</p><p id="history-status" role="status" class="small muted"></p><div id="history"></div></section>
-</main>
-<footer>Research prototype using Swiss Dwellings v3.0.0 (Archilyse, CC BY 4.0). Historical examples are not live listings. Area/count similarity does not establish an identical floor plan. Noise-rule metrics are preliminary; a non-flagged result does not certify quietness.</footer>
-</div></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Quiet & Bright Studio | Swiss Dwellings AI</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <nav class="topbar">
+      <a href="/" class="brand">
+        <span class="brand-dot"></span>
+        SWISS DWELLINGS <span class="brand-sub">/ TEAM 5 ARCHITECTURAL AI</span>
+      </a>
+      <div class="topbar-actions">
+        <span class="status-chip"><span class="pulse-dot"></span> 44,195 Reference Dwellings</span>
+        <a href="#history-section" class="nav-link">Saved D1 Audits</a>
+        <button id="logout" class="text-button" type="button">Log out</button>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="hero-content">
+        <span class="eyebrow">SPATIAL BUBBLE TOPOLOGY • ENVIRONMENTAL AUTOENCODER</span>
+        <h1>A Quieter Place.<br>A Brighter Possibility.</h1>
+        <p>Explore up to 50 curated Swiss listings for sale, inspect their organic room-bubble spatial diagrams with live solar halos and acoustic ripples, verify market normality against the 95th-percentile threshold, and discover 3–5 superior spatial twins.</p>
+        <div class="pills">
+          <span>Organic Bubble Spatial Diagrams</span>
+          <span>95th Percentile Normality Cutoff</span>
+          <span>Acoustics • Sunlight • Views • Layout</span>
+          <span>Cloudflare D1 Persistence</span>
+        </div>
+      </div>
+      <div class="hero-kpis">
+        <div class="hero-kpi">
+          <small>SWISS CATALOG</small>
+          <strong>44,195</strong>
+          <span>Multi-room apartments indexed</span>
+        </div>
+        <div class="hero-kpi">
+          <small>NORMALITY CUTOFF</small>
+          <strong>Top 5%</strong>
+          <span>95th percentile unusualness limit</span>
+        </div>
+        <div class="hero-kpi">
+          <small>PORTFOLIO POOL</small>
+          <strong>50 Listings</strong>
+          <span>Interactive Agent &amp; Architect catalog</span>
+        </div>
+      </div>
+    </header>
+
+    <div id="notice" class="notice" role="status" hidden></div>
+
+    <!-- Curated 50-Apartment Selector with "How many apartments to display (up to 50)" -->
+    <section class="listing-strip-section">
+      <div class="strip-header">
+        <div>
+          <span class="section-label">REAL ESTATE AGENT &amp; ARCHITECT PORTFOLIO EXPLORER</span>
+          <h2>Browse Apartments For Sale or Under Architectural Review</h2>
+        </div>
+        <div class="catalog-controls">
+          <div class="filter-pills" role="group" aria-label="Filter listings">
+            <button type="button" class="filter-pill active" data-filter="all">All 50 Listings</button>
+            <button type="button" class="filter-pill" data-filter="anomaly">Flagged / Needs Architect</button>
+            <button type="button" class="filter-pill" data-filter="normal">Market-Ready Normal</button>
+          </div>
+          <label class="count-control" for="display-limit">
+            <span>Show apartments:</span>
+            <input id="display-limit" type="range" min="4" max="50" step="2" value="12">
+            <output id="display-limit-val" for="display-limit">12 / 50</output>
+          </label>
+        </div>
+      </div>
+      <div id="listing-carousel" class="listing-carousel" role="list"></div>
+    </section>
+
+    <main>
+      <div class="workspace">
+        <!-- Left Column: Bubble Topology Diagram + Upgrade Brief + 24 Measurements -->
+        <form id="apartment-form" class="panel input-panel">
+          <div class="panel-header-inline">
+            <span class="step-badge">01</span>
+            <h2 class="step">Selected Apartment &amp; Spatial Bubble Diagram</h2>
+          </div>
+
+          <label for="example">Jump Directly to Any of the 50 Apartments</label>
+          <select id="example"></select>
+
+          <!-- Artistic Architectural Bubble Diagram + Solar Halo + Acoustic Ripples -->
+          <div class="blueprint-box">
+            <div class="blueprint-header">
+              <span>SPATIAL BUBBLE TOPOLOGY &amp; ENVIRONMENTAL HALO</span>
+              <strong id="blueprint-meta">-- m² • -- rooms</strong>
+            </div>
+            <div id="blueprint-svg-wrap" class="blueprint-svg-wrap"></div>
+            <div id="blueprint-Readout" class="blueprint-readout"></div>
+          </div>
+
+          <div class="panel-header-inline" style="margin-top:22px;">
+            <span class="step-badge">02</span>
+            <h2 class="step">Architect Twin Upgrade Priorities</h2>
+          </div>
+          <p class="small muted">When searching the 44,195 catalog for 3–5 similar apartments (&plusmn;25% area, &plusmn;2 rooms), require improvements on:</p>
+
+          <div class="goal-cards">
+            <label class="goal-card">
+              <input id="acoustics" type="checkbox" checked>
+              <div class="goal-card-body">
+                <strong style="color:#F56200">Quieter Acoustics (&minus;10 dBA)</strong>
+                <span>Reduce daytime indoor &amp; window traffic noise ripples</span>
+              </div>
+            </label>
+            <label class="goal-card">
+              <input id="sunlight" type="checkbox" checked>
+              <div class="goal-card-body">
+                <strong style="color:#b45309">Brighter Sunlight Halo</strong>
+                <span>Increase equinox noon direct solar illuminance (klx)</span>
+              </div>
+            </label>
+            <label class="goal-card">
+              <input id="views" type="checkbox" checked>
+              <div class="goal-card-body">
+                <strong style="color:#1e7e72">Wider Sky &amp; Greenery Viewshed</strong>
+                <span>Expand open sky &amp; foliage visibility solid angle (sr)</span>
+              </div>
+            </label>
+          </div>
+
+          <div class="slider-row">
+            <label for="top-k">Recommended Better Twins to Display <output id="top-k-value" for="top-k">5</output></label>
+            <input id="top-k" type="range" min="1" max="5" step="1" value="5">
+          </div>
+
+          <button id="analyse" class="primary" type="submit">
+            Evaluate Normality &amp; Find Better Spatial Twins
+          </button>
+
+          <details class="measurements">
+            <summary>Inspect or Tweak All 24 Environmental Measurements</summary>
+            <p class="small muted">Edit any parameter to test a "What-If" architectural intervention—the bubble diagram, solar halo, and acoustic ripples update live.</p>
+            <div id="feature-fields"></div>
+          </details>
+        </form>
+
+        <!-- Right Column: Two-Story Studio (Story 1: Real Estate Agent vs Story 2: Architect) -->
+        <div class="result-column">
+          <div class="persona-bar" role="tablist" aria-label="User Story View Switcher">
+            <button type="button" id="tab-btn-agent" class="persona-tab active" data-tab="agent" role="tab" aria-selected="true">
+              <span class="persona-step">USER STORY 01</span>
+              <strong>Real Estate Agent View</strong>
+              <small>Normality Percentile, Threshold &amp; 4-Dimension Rating</small>
+            </button>
+            <button type="button" id="tab-btn-architect" class="persona-tab" data-tab="architect" role="tab" aria-selected="false">
+              <span class="persona-step">USER STORY 02</span>
+              <strong>Architect View</strong>
+              <small>Abnormal Dimension Diagnosis &amp; 3–5 Better Spatial Twins</small>
+            </button>
+            <button type="button" id="tab-btn-split" class="persona-tab" data-tab="split" role="tab" aria-selected="false">
+              <span class="persona-step">COMBINED STUDIO</span>
+              <strong>Show Both Views</strong>
+              <small>Full Real Estate + Architect Report Together</small>
+            </button>
+          </div>
+
+          <div id="story-agent-pane">
+            <section id="summary" aria-live="polite"></section>
+            <section id="errors" style="margin-top:20px;"></section>
+          </div>
+
+          <div id="story-architect-pane" hidden>
+            <section id="twins"></section>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparison Table -->
+      <details class="panel section-space" open>
+        <summary>Side-by-Side Environmental &amp; Layout Comparison Table</summary>
+        <div id="comparison" class="table-scroll"></div>
+      </details>
+
+      <!-- Guided Architectural Copilot -->
+      <section class="panel section-space" id="guide">
+        <div class="section-heading">
+          <div>
+            <div class="section-label">INTERACTIVE INTERPRETATION GUIDE</div>
+            <h2>Understand Your Apartment &amp; Spatial Twins</h2>
+          </div>
+          <button id="clear-chat" class="secondary" type="button">Clear Conversation</button>
+        </div>
+        <p class="muted small">Click any question for a plain-English explanation grounded in the selected apartment's actual measurements and twins.</p>
+        <div id="question-buttons" class="question-grid"></div>
+        <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="Apartment guide conversation"></div>
+      </section>
+
+      <!-- Cloudflare D1 Shared Evaluation History -->
+      <section id="history-section" class="panel section-space">
+        <div class="section-heading">
+          <div>
+            <div class="section-label">CLOUDFLARE D1 SQL DATABASE</div>
+            <h2>Saved Team Evaluations</h2>
+          </div>
+          <button id="refresh-history" class="secondary" type="button">Refresh Saved List</button>
+        </div>
+        <p class="muted small">Every evaluation is saved to Cloudflare D1 (`team5-swiss-dwellings-db`). Click any past entry to reopen its bubble diagram, normality percentile, and spatial twins instantly.</p>
+        <p id="history-status" role="status" class="small muted"></p>
+        <div id="history" class="history-list"></div>
+      </section>
+    </main>
+
+    <footer>
+      Research prototype using Swiss Dwellings v3.0.0 (Archilyse, CC BY 4.0) • Team 5 (Breno Sader, Diego Alpizar, Sindhuja Davuluri, Soumyajyoti Datta). Palette: Yale Blue (#133C55), Cornflower Ocean (#386FA4), Fresh Sky (#59A5D8), White Smoke (#F5F5F5), Autumn Leaf (#F56200).
+    </footer>
+  </div>
+</body>
+</html>
