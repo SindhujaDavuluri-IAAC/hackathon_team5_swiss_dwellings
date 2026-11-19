@@ -4,6 +4,7 @@ Run from the repository root: python 02_model_server/app.py
 The Gradio page and /predict API share exactly the same inference function.
 """
 import hashlib
+import io
 from html import escape
 import json
 import os
@@ -72,10 +73,21 @@ def standardize(raw):
     return ((np.asarray(raw, dtype=np.float64) - MEAN) / SCALE).astype(np.float32)
 
 
-# This NPZ is a trusted, team-produced artifact checked into this repository.
-# Its apartment IDs are object arrays, hence allow_pickle=True. Never accept
-# uploaded NPZ files here. Only this fixed artifact path is read.
-with np.load(MODEL_DIR / "full_apartments_catalog.npz", allow_pickle=True) as saved:
+# Use only the verified team artifact: NPZ IDs require pickle-enabled loading.
+# The reference catalog is hosted on Hugging Face rather than committed to Git.
+catalog_path = MODEL_DIR / "full_apartments_catalog.npz"
+if catalog_path.is_file():
+    catalog_bytes = catalog_path.read_bytes()
+else:
+    response = requests.get(
+        f"https://huggingface.co/{HF_REPO}/resolve/{HF_REVISION}/full_apartments_catalog.npz",
+        timeout=90,
+    )
+    response.raise_for_status()
+    catalog_bytes = response.content
+if hashlib.sha256(catalog_bytes).hexdigest() != "3767804296c99642db74baa6c55deB13D069C5E75132F7A46988D7B08003D59B".lower():
+    raise RuntimeError("Reference catalog hash mismatch.")
+with np.load(io.BytesIO(catalog_bytes), allow_pickle=True) as saved:
     CATALOG = {k: saved[k].copy() for k in ["apartment_id", "building_id", "site_id", "is_anomaly", "features"]}
 RAW = CATALOG["features"]
 if RAW.ndim != 2 or RAW.shape[1] != len(FEATURES) or not np.isfinite(RAW).all():

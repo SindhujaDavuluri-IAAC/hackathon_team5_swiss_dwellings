@@ -18,6 +18,7 @@ data/*
 *.onnx
 *.pt
 *.joblib
+*.npz
 
 # Cloudflare and Node
 node_modules/
