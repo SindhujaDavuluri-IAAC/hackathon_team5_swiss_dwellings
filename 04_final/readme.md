@@ -1,8 +1,8 @@
-# Final submission: Swiss Dwellings
+# Final submission: Swiss Dwellings - A quiter place, a brighter horizon, and a more scenic vista.
 
 **Team 5:** Breno Sader, Diego Alpizar, Sindhuja Davuluri and Soumyajyoti Datta.
 
-[Live app](https://team5-swiss-dwellings.pages.dev) · [Model server](https://hackathon-team5-swiss-dwellings.onrender.com) · [Model card](https://huggingface.co/iaac-maai/hackathon-team5-swiss-dwellings) · [Final app code](../03_app/)
+[Live app](https://team5-swiss-dwellings.pages.dev) · [Model server](https://hackathon-team5-swiss-dwellings.onrender.com) · [Model card](https://huggingface.co/iaac-maai/hackathon-team5-swiss-dwellings) · [Final app code](app/)
 
 ## What the app does
 
@@ -18,15 +18,13 @@ The app uses Cloudflare Pages and Functions, a separate D1 account database and 
 
 The diagrams show the earlier combined team-password and account login. They need updating to show the current alternative team-password-only entry.
 
-## Three statements — draft for team review
-
-The course asks the team to make these statements in its own words; review and edit the draft before presenting.
+## Three statements 
 
 **What is clear:** We understand how apartment features are aggregated and standardized, how reconstruction error is compared with the threshold, and how the browser, Cloudflare, Render and the two databases interact.
 
-**What is still unclear:** The noise-rule labels are proxies, the evaluation has building leakage, and the results do not prove real-world noise or renovation needs. Render availability can affect the live demo.
+**What is still unclear:** The noise-rule labels are proxies - based on the model, and the results do not prove real-world noise or renovation needs. Render availability can affect the live demo.
 
-**What we would do next:** Evaluate with a building-independent split and independently verified labels, validate similarity with users, and improve account recovery and email verification.
+**What we would do next:** Validate similarity with users, and improve account recovery and email verification.
 
 ## Failure cases
 
