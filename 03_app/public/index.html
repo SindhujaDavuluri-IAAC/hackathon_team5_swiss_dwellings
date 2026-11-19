@@ -12,11 +12,10 @@
     <nav class="topbar">
       <a href="/" class="brand">
         <span class="brand-dot"></span>
-        SWISS DWELLINGS <span class="brand-sub">/ TEAM 5 ARCHITECTURAL AI</span>
+        SWISS DWELLINGS
       </a>
       <div class="topbar-actions">
         <span class="status-chip"><span class="pulse-dot"></span> 44,195 Reference Dwellings</span>
-        <a href="#history-section" class="nav-link">Saved D1 Audits</a>
         <button id="logout" class="text-button" type="button">Log out</button>
       </div>
     </nav>
@@ -25,12 +24,11 @@
       <div class="hero-content">
         <span class="eyebrow">SPATIAL BUBBLE TOPOLOGY • ENVIRONMENTAL AUTOENCODER</span>
         <h1>A Quieter Place.<br>A Brighter Possibility.</h1>
-        <p>Explore up to 50 curated Swiss listings for sale, inspect their organic room-bubble spatial diagrams with live solar halos and acoustic ripples, verify market normality against the 95th-percentile threshold, and discover 3–5 superior spatial twins.</p>
+        <p>Explore up to 50 historical Swiss apartment examples, inspect illustrative bubble diagrams, evaluate model scores and discover similar reference apartments. Diagrams are not actual floor plans or current listings.</p>
         <div class="pills">
           <span>Organic Bubble Spatial Diagrams</span>
           <span>95th Percentile Normality Cutoff</span>
           <span>Acoustics • Sunlight • Views • Layout</span>
-          <span>Cloudflare D1 Persistence</span>
         </div>
       </div>
       <div class="hero-kpis">
@@ -42,7 +40,7 @@
         <div class="hero-kpi">
           <small>NORMALITY CUTOFF</small>
           <strong>Top 5%</strong>
-          <span>95th percentile unusualness limit</span>
+          <span>95th percentile of normal validation errors</span>
         </div>
         <div class="hero-kpi">
           <small>PORTFOLIO POOL</small>
@@ -59,13 +57,14 @@
       <div class="strip-header">
         <div>
           <span class="section-label">REAL ESTATE AGENT &amp; ARCHITECT PORTFOLIO EXPLORER</span>
-          <h2>Browse Apartments For Sale or Under Architectural Review</h2>
+          <h2>Browse Historical Apartment Examples</h2>
+          <p class="small muted">Labels reflect model flags only; they do not verify market readiness or renovation needs.</p>
         </div>
         <div class="catalog-controls">
           <div class="filter-pills" role="group" aria-label="Filter listings">
-            <button type="button" class="filter-pill active" data-filter="all">All 50 Listings</button>
-            <button type="button" class="filter-pill" data-filter="anomaly">Flagged / Needs Architect</button>
-            <button type="button" class="filter-pill" data-filter="normal">Market-Ready Normal</button>
+            <button type="button" class="filter-pill active" data-filter="all">All 50 Examples</button>
+            <button type="button" class="filter-pill" data-filter="anomaly">Need Renovation</button>
+            <button type="button" class="filter-pill" data-filter="normal">Market Ready</button>
           </div>
           <label class="count-control" for="display-limit">
             <span>Show apartments:</span>
@@ -103,7 +102,7 @@
             <span class="step-badge">02</span>
             <h2 class="step">Architect Twin Upgrade Priorities</h2>
           </div>
-          <p class="small muted">When searching the 44,195 catalog for 3–5 similar apartments (&plusmn;25% area, &plusmn;2 rooms), require improvements on:</p>
+          <p class="small muted">When searching the 44,195 catalog for up to 5 similar apartments (&plusmn;25% area, &plusmn;2 area records), require improvements on:</p>
 
           <div class="goal-cards">
             <label class="goal-card">
@@ -117,7 +116,7 @@
               <input id="sunlight" type="checkbox" checked>
               <div class="goal-card-body">
                 <strong style="color:#b45309">Brighter Sunlight Halo</strong>
-                <span>Increase equinox noon direct solar illuminance (klx)</span>
+                <span>Increase the equinox noon sun simulation value</span>
               </div>
             </label>
             <label class="goal-card">
@@ -151,12 +150,12 @@
             <button type="button" id="tab-btn-agent" class="persona-tab active" data-tab="agent" role="tab" aria-selected="true">
               <span class="persona-step">USER STORY 01</span>
               <strong>Real Estate Agent View</strong>
-              <small>Normality Percentile, Threshold &amp; 4-Dimension Rating</small>
+              <small>Reconstruction Score, Threshold &amp; Domain Contributions</small>
             </button>
             <button type="button" id="tab-btn-architect" class="persona-tab" data-tab="architect" role="tab" aria-selected="false">
               <span class="persona-step">USER STORY 02</span>
               <strong>Architect View</strong>
-              <small>Abnormal Dimension Diagnosis &amp; 3–5 Better Spatial Twins</small>
+              <small>Selected Improvements &amp; Up to 5 Reference Matches</small>
             </button>
             <button type="button" id="tab-btn-split" class="persona-tab" data-tab="split" role="tab" aria-selected="false">
               <span class="persona-step">COMBINED STUDIO</span>
@@ -196,19 +195,6 @@
         <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="Apartment guide conversation"></div>
       </section>
 
-      <!-- Cloudflare D1 Shared Evaluation History -->
-      <section id="history-section" class="panel section-space">
-        <div class="section-heading">
-          <div>
-            <div class="section-label">CLOUDFLARE D1 SQL DATABASE</div>
-            <h2>Saved Team Evaluations</h2>
-          </div>
-          <button id="refresh-history" class="secondary" type="button">Refresh Saved List</button>
-        </div>
-        <p class="muted small">Every evaluation is saved to Cloudflare D1 (`team5-swiss-dwellings-db`). Click any past entry to reopen its bubble diagram, normality percentile, and spatial twins instantly.</p>
-        <p id="history-status" role="status" class="small muted"></p>
-        <div id="history" class="history-list"></div>
-      </section>
     </main>
 
     <footer>

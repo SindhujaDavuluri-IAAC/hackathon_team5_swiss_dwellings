@@ -1,5 +1,9 @@
 # Day 3: Quiet & Bright Twin Finder on Cloudflare
 
+**Account update:** Users register with an email and a password of at least eight characters, including uppercase, lowercase, number and special character. Account credentials and session tokens are stored as salted password hashes and hashed session tokens in the separate D1 database `team5-swiss-users`; they are not stored in the apartment database. Sessions expire after one day and are revoked at logout. The website does not expose saved history or account records. The shared-password setup instructions below are historical and no longer describe the active login.
+
+To initialize the separate account database in a new environment, bind it as `USERS_DB` and apply `users_schema.sql`. Registration does not verify email addresses and there is no password recovery; use this as a hackathon prototype.
+
 **Team 5:** Breno Sader, Diego Alpizar, Sindhuja Davuluri, Soumyajyoti Datta.
 
 **Cloudflare app URL:** https://team5-swiss-dwellings.pages.dev
